@@ -2,7 +2,7 @@
   "name": "docs",
   "version": "1.0.0",
   "description": "A Project For Storing Docs",
-  "homepage": "https://docs.manish.kr",
+  "homepage": "https://docs.vatan18.in",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,12 +11,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/manishdotkr/docs.git"
+    "url": "git+https://github.com/vatan18/docs.git"
   },
-  "author": "Manish <manishdotkr@gmail.com>",
+  "author": "Vatan <vvrajput85@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/manishdotkr/docs/issues"
+    "url": "https://github.com/vatan18/docs/issues"
   },
   "dependencies": {
     "next": "^13.5.7",
