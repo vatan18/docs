@@ -1,0 +1,24 @@
+upstream backend {
+        server backend:5000;
+    }
+
+    server {
+        listen 80;
+        server_name flask.impressicocrm.com;
+        return 301 https://$host$request_uri;
+    }
+
+    server {
+        listen 443 ssl;
+        server_name flask.impressicocrm.com;
+
+        ssl_certificate /etc/nginx/ssl_certificate/1841402566.crt;
+        ssl_certificate_key /etc/nginx/ssl_certificate/impressicorsa.key;
+
+        location / {
+            proxy_pass http://backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }

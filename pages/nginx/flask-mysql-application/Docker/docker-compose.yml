@@ -1,0 +1,23 @@
+version: '3'
+services:
+
+  backend:
+    build:
+      context: ./flask
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: Keepitupn0w@ 
+      MYSQL_DB: myDb
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend

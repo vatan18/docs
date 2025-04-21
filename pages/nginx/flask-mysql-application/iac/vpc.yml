@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VPC CFT
+Parameters:
+  environment:
+    Type: String
+    Default: new
+  product:
+    Type: String
+    Default: test
+  service:
+    Type: String
+    Default: vpc
+  vpcCIDR:
+    Type: String
+    Default: 25.100.1.0/24
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref vpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${environment}-${product}-${service}
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${environment}-${product}-${service}-internetgateway
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    DependsOn: InternetGateway
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Select [0, !Cidr [!Ref vpcCIDR, 2, 7]]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${environment}-${product}-${service}-public-subnet-a
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${environment}-${product}-${service}-public-route
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetA
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: VPC
+    Properties:
+      GroupName: !Sub ${environment}-${product}-${service}-generalSG
+      GroupDescription: "Open HTTP (port 80)"
+      VpcId: !Ref VPC  
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTP Traffic for All
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTPS Traffic for All
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+          Description: Outbound traffic for all
+      Tags:
+        - Key: Name
+          Value: !Sub ${environment}-${product}-${service}-generalSG
+
+Outputs:
+  VPC:
+    Description: A reference to the created VPC
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${environment}-${product}-${service}'  
+
+  InternetGateway:
+    Description: A reference to the created InternetGateway
+    Value: !Ref InternetGateway
+    Export:
+      Name: !Sub '${environment}-${product}-${service}-internetgateway'  
+
+  PublicSubnetA:
+    Description: A reference to the public subnet in the 1st Availability Zone
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: !Sub '${environment}-${product}-${service}-public-subnet-a'  
+
+  PublicRouteTable:
+    Description: A reference to the public route table
+    Value: !Ref PublicRouteTable
+    Export:
+      Name: !Sub '${environment}-${product}-${service}-public-route'  
+
+  SecurityGroup:
+    Description: Security group with ingress and egress rule
+    Value: !Ref SecurityGroup      
+    Export:
+      Name: !Sub '${environment}-${product}-${service}-generalSG'  

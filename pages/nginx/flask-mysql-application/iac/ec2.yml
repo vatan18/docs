@@ -1,0 +1,134 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  GitHubAccessToken:
+    Type: String
+    Description: "Access token for GitHub repository"
+  BranchToUse:
+    Type: String
+    Description: "Access token for GitHub repository"  
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-007020fd9c84e18c7  # Provide the appropriate Ubuntu AMI ID here
+      InstanceType: t2.micro
+      Tags:
+        - Key: Name
+          Value: flaskapp_ssl
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          DeleteOnTermination: true
+          GroupSet: 
+            - !ImportValue "new-test-vpc-generalSG"
+          SubnetId: !ImportValue "new-test-vpc-public-subnet-a"
+      IamInstanceProfile: !Ref IAMInstanceProfile # Reference to the IAM instance profile
+      VpcId: !ImportValue "new-test-vpc"   
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+          set -x
+          set -e
+          DEBIAN_FRONTEND=noninteractive apt-get update -y
+          DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential python3-pip
+          pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+
+          trap sendSuccessSignal EXIT
+
+          trap sendFailureSignal ERR
+
+          sendFailureSignal() {
+            echo "Something Bad Happened ... cleaning up."
+            cfn-signal -e 1 --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region}
+            echo "Signal Sent .... Nothing To Do Sport!!!!"
+            exit 1
+          }
+
+          sendSuccessSignal() {
+            echo "Everything Is Good .... Sending Success Signal"
+            cfn-signal -e 0 --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region}
+            echo "Signal Sent .... Nothing To Do Sport!!!!"
+            exit 0
+          }
+
+          apt update && \
+          apt install -y git && \
+          echo "Git installed successfully." >&2
+
+          echo "Cloning repository from GitHub..." >&2
+          git clone -b ${BranchToUse} https://${GitHubAccessToken}:x-oauth-basic@github.com/imp-ress-ico/sandbox.git && \
+          cp -r /sandbox/project/flask-mysql-application /home/ubuntu/ && \
+          cd /home/ubuntu/flask-mysql-application && \
+          apt-get update && apt-get install -y awscli && \
+          aws s3 cp s3://imprcert/CER-CRT /home/ubuntu/flask-mysql-application/Docker/nginx/ssl --recursive && \
+          # Install Docker
+          apt install -y docker.io && \
+          # Install Docker Compose
+          apt install -y curl
+          curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
+          chmod +x /usr/local/bin/docker-compose
+          chmod 777 /var/run/docker.sock
+
+          # Install MySQL 8
+          apt install -y mysql-server
+          systemctl start mysql
+          systemctl enable mysql
+          # Modify MySQL configuration
+          sed -i 's/bind-address\s*=\s*127.0.0.1/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
+          systemctl restart mysql
+          
+          # Execute MySQL commands
+          mysql -u root -e "CREATE USER 'admin'@'%' IDENTIFIED BY 'Keepitupn0w@';"
+          mysql -u root -e "CREATE DATABASE myDb;"
+          mysql -u root -e "GRANT ALL PRIVILEGES ON myDb.* TO 'admin'@'%';"
+          mysql -u root -e "FLUSH PRIVILEGES;"
+          mysql -u root -e "use myDb; CREATE TABLE messages (id INT AUTO_INCREMENT PRIMARY KEY, message TEXT);"
+
+          cd Docker && docker-compose up -d
+          echo "Setup script executed successfully." >&2
+
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:  # Attach AmazonSSMManagedInstanceCore policy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  IAMInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref IAMRole
+
+  S3BucketAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: S3BucketAccessPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:ListBucket
+            Resource: 
+              - "arn:aws:s3:::imprcert"
+              - "arn:aws:s3:::imprcert/*"
+      Roles:
+        - !Ref IAMRole
+
+
+  MyElasticIP:
+    Type: AWS::EC2::EIP
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref EC2Instance
+      EIP: !Ref MyElasticIP

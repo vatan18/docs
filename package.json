@@ -1,0 +1,32 @@
+{
+  "name": "docs",
+  "version": "1.0.0",
+  "description": "A Project For Storing Docs",
+  "homepage": "https://docs.manish.kr",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "export": "next build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/manishdotkr/docs.git"
+  },
+  "author": "Manish <manishdotkr@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/manishdotkr/docs/issues"
+  },
+  "dependencies": {
+    "next": "^13.5.7",
+    "nextra": "^2.13.4",
+    "nextra-theme-docs": "^2.13.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "18.11.10",
+    "typescript": "^4.9.3"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "index": "Introduction",
+  "about": {
+    "title": "About",
+    "type": "page",
+    "href": "https://manish.kr",
+    "newWindow": true
+  },
+  "contact": {
+    "title": "Contact ↗",
+    "type": "page",
+    "href": "https://manish.kr/#/contact",
+    "newWindow": true
+  }
+}
