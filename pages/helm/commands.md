@@ -6,9 +6,9 @@ helm install <release-name> <chart> [flags]
 ```
 - **Example**:
   ```bash
-  helm install manishboard-release manishboard
+  helm install Vatanboard-release Vatanboard
   ```
-- **Description**: Installs a Helm chart as a release. The release is named `manishboard-release`, and the chart is `manishboard`.
+- **Description**: Installs a Helm chart as a release. The release is named `Vatanboard-release`, and the chart is `vatanboard`.
 
 #### 2. **Uninstall a Release**
 ```bash
@@ -16,9 +16,9 @@ helm uninstall <release-name> [flags]
 ```
 - **Example**:
   ```bash
-  helm uninstall manishboard-release
+  helm uninstall vatanboard-release
   ```
-- **Description**: Uninstalls a Helm release. In this case, it removes the `manishboard-release`.
+- **Description**: Uninstalls a Helm release. In this case, it removes the `Vatanboard-release`.
 
 #### 3. **Upgrade a Release**
 ```bash
@@ -26,7 +26,7 @@ helm upgrade <release-name> <chart> [flags]
 ```
 - **Example**:
   ```bash
-  helm upgrade manishboard-release manishboard
+  helm upgrade Vatanboard-release Vatanboard
   ```
 - **Description**: Upgrades an existing release. If the release does not exist, it installs it.
 
@@ -36,7 +36,7 @@ helm upgrade --install <release-name> <chart> [flags]
 ```
 - **Example**:
   ```bash
-  helm upgrade --install manishboard-release manishboard
+  helm upgrade --install Vatanboard-release Vatanboard
   ```
 - **Description**: This command is useful when you want to upgrade a release if it exists or install it if it doesn't. It’s a combination of `helm upgrade` and `helm install`.
 
@@ -47,9 +47,9 @@ helm list [flags]
 - **Example**:
   ```bash
   helm list
-  helm list -n manishboard-ns
+  helm list -n Vatanboard-ns
   ```
-- **Description**: Lists all installed releases in the current namespace or specific namespace (`manishboard-ns` in the example).
+- **Description**: Lists all installed releases in the current namespace or specific namespace (`Vatanboard-ns` in the example).
 
 #### 6. **Add a Helm Repository**
 ```bash
@@ -77,9 +77,9 @@ helm install <release-name> <repo>/<chart> [flags]
 ```
 - **Example**:
   ```bash
-  helm install manishboard-rls manishboard-helm/manishboard
+  helm install vatanboard-rls vatanboard-helm/vatanboard
   ```
-- **Description**: Installs a chart from a specific Helm repository. In this case, it installs `manishboard` from the `manishboard-helm` repository.
+- **Description**: Installs a chart from a specific Helm repository. In this case, it installs `vatanboard` from the `vatanboard-helm` repository.
 
 #### 9. **Search for a Chart in a Repository**
 ```bash
@@ -88,7 +88,7 @@ helm search repo <chart-name>
 - **Example**:
   ```bash
   helm search repo --versions
-  helm search repo --versions | grep manishboard
+  helm search repo --versions | grep vatanboard
   ```
 - **Description**: Searches for a chart in the Helm repository, optionally filtering by versions.
 
@@ -98,7 +98,7 @@ helm install <release-name> <chart> --set <key>=<value> [flags]
 ```
 - **Example**:
   ```bash
-  helm install manishboard-rls manishboard-helm/manishboard -n manishboard-ns --set deployment.backend.imageTag=8fcb21dade40a55feeeedcf70585d9ba8ad62980
+  helm install vatanboard-rls vatanboard-helm/vatanboard -n vatanboard-ns --set deployment.backend.imageTag=8fcb21dade40a55feeeedcf70585d9ba8ad62980
   ```
 - **Description**: Installs a chart with custom values passed as key-value pairs. In this case, it sets a custom `imageTag` for the backend deployment.
 
@@ -108,9 +108,9 @@ helm uninstall <release-name> -n <namespace>
 ```
 - **Example**:
   ```bash
-  helm uninstall manishboard-rls -n manishboard-ns
+  helm uninstall vatanboard-rls -n vatanboard-ns
   ```
-- **Description**: Uninstalls a release from a specific namespace (`manishboard-ns`).
+- **Description**: Uninstalls a release from a specific namespace (`vatanboard-ns`).
 
 #### 12. **Install with Namespace**
 ```bash
@@ -118,9 +118,9 @@ helm install <release-name> <chart> -n <namespace>
 ```
 - **Example**:
   ```bash
-  helm install manishboard-rls manishboard-helm/manishboard -n manishboard-ns
+  helm install vatanboard-rls vatanboard-helm/vatanboard -n vatanboard-ns
   ```
-- **Description**: Installs a Helm release into a specific namespace (`manishboard-ns`).
+- **Description**: Installs a Helm release into a specific namespace (`vatanboard-ns`).
 
 #### 13. **List All Repositories**
 ```bash
@@ -138,7 +138,7 @@ helm upgrade <release-name> <chart> -n <namespace> --set <key>=<value>
 ```
 - **Example**:
   ```bash
-  helm upgrade manishboard-rls manishboard-helm/manishboard -n manishboard-ns --set deployment.backend.imageTag=8fcb21dade40a55feeeedcf70585d9ba8ad62980
+  helm upgrade vatanboard-rls vatanboard-helm/vatanboard -n vatanboard-ns --set deployment.backend.imageTag=8fcb21dade40a55feeeedcf70585d9ba8ad62980
   ```
 - **Description**: Upgrades a release with a custom value passed and specifies a namespace.
 
@@ -170,7 +170,7 @@ helm upgrade <release-name> <chart> -f <custom-values.yaml>
 ```
 - **Example**:
   ```bash
-  helm install manishboard-rls manishboard-helm/manishboard -f custom-values.yaml
-  helm upgrade manishboard-rls manishboard-helm/manishboard -f custom-values.yaml
+  helm install vatanboard-rls vatanboard-helm/vatanboard -f custom-values.yaml
+  helm upgrade vatanboard-rls vatanboard-helm/vatanboard -f custom-values.yaml
   ```
 - **Description**: Installs or upgrades a Helm release using a custom `values.yaml` file instead of passing key-value pairs individually.

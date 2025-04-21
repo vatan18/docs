@@ -4,9 +4,9 @@ import { DocsThemeConfig } from 'nextra-theme-docs'
 const config: DocsThemeConfig = {
   logo: <span>Docs</span>,
   project: {
-    link: 'https://github.com/manishdotkr',
+    link: 'https://github.com/vatan18',
   },
-  docsRepositoryBase: 'https://github.com/manishdotkr/docs',
+  docsRepositoryBase: 'https://github.com/vatan18/docs',
   footer: {
     text: 'Nextra Docs Template',
   },

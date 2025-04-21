@@ -27,7 +27,7 @@ kubectl scale deployment <name> --replicas=3  # Scale a deployment
 kubectl rollout status deployment <name> # Show rollout status
 kubectl rollout undo deployment <name>   # Rollback to the previous deployment
 kubectl rollout restart deployment -n traefik-ns  # Restart a deployment in traefik namespace
-kubectl rollout restart deployment -n manishboard-ns  # Restart a deployment in manishboard namespace
+kubectl rollout restart deployment -n vatanboard-ns  # Restart a deployment in vatanboard namespace
 kubectl delete deployment <name>         # Delete a deployment
 ```
 
@@ -41,7 +41,7 @@ kubectl delete service <name>        # Delete a service
 
 ## 5. Ingress and Traffic Management
 ```sh
-kubectl get ingressroutes -n manishboard-ns  # List ingress routes in manishboard namespace
+kubectl get ingressroutes -n vatanboard-ns  # List ingress routes in vatanboard namespace
 kubectl get ingressclasses                    # List available ingress classes
 ```
 

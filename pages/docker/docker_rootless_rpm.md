@@ -97,10 +97,10 @@ The downloaded packages will be saved in the `/var/cache/apt/archives` directory
 ## Transfer Packages to Target Machine Using `scp`
 
 ```bash
-scp /var/cache/apt/archives/docker-ce-rootless-extras_5%3a27.0.3-1~ubuntu.20.04~focal_amd64.deb manish@172.20.23.147:~/
-scp /var/cache/apt/archives/uidmap_1%3a4.8.1-1ubuntu5.20.04.5_amd64.deb manish@172.20.23.147:~/
-scp /var/cache/apt/archives/slirp4netns_0.4.3-1_amd64.deb manish@172.20.23.147:~/
-scp /var/cache/apt/archives/libslirp0_4.1.0-2ubuntu2.2_amd64.deb manish@172.20.23.147:~/
+scp /var/cache/apt/archives/docker-ce-rootless-extras_5%3a27.0.3-1~ubuntu.20.04~focal_amd64.deb Vatan@172.20.23.147:~/
+scp /var/cache/apt/archives/uidmap_1%3a4.8.1-1ubuntu5.20.04.5_amd64.deb Vatan@172.20.23.147:~/
+scp /var/cache/apt/archives/slirp4netns_0.4.3-1_amd64.deb Vatan@172.20.23.147:~/
+scp /var/cache/apt/archives/libslirp0_4.1.0-2ubuntu2.2_amd64.deb Vatan@172.20.23.147:~/
 ```
 
 ---

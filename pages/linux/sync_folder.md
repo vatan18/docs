@@ -20,9 +20,9 @@ sudo apt install owncloud-client
 To manually back up a folder to ownCloud, use the `rsync` command:
 
 ```bash
-rsync -avz /home/manish.kumar201/gunnerroofing/ /home/manish.kumar201/ownCloud/gunnerroofing
+rsync -avz /home/vatan.kumar201/gunnerroofing/ /home/vatan.kumar201/ownCloud/gunnerroofing
 
-rsync -avz /home/manish.kumar201/lth/ /home/manish.kumar201/ownCloud/lth/
+rsync -avz /home/vatan.kumar201/lth/ /home/vatan.kumar201/ownCloud/lth/
 ```
 
 ### Explanation of Options:
@@ -37,14 +37,14 @@ crontab -e
 ```
 Then add the following lines to schedule backups every night at 2 AM:
 ```bash
-0 2 * * * rsync -avz /home/manish.kumar201/gunnerroofing/ /home/manish.kumar201/ownCloud/gunnerroofing
-0 2 * * * rsync -avz /home/manish.kumar201/lth/ /home/manish.kumar201/ownCloud/lth/
+0 2 * * * rsync -avz /home/vatan.kumar201/gunnerroofing/ /home/vatan.kumar201/ownCloud/gunnerroofing
+0 2 * * * rsync -avz /home/vatan.kumar201/lth/ /home/vatan.kumar201/ownCloud/lth/
 ```
 
 ## Verify Sync
 To check if the files are correctly synced, use:
 ```bash
-owncloudcmd --status /home/manish.kumar201/ownCloud/
+owncloudcmd --status /home/vatan.kumar201/ownCloud/
 ```
 
 ## Conclusion

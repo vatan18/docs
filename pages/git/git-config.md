@@ -27,11 +27,11 @@ Replace `<username>` and `<userGmail>` with your actual Git username and email.
 
 ```plaintext
 [user]
-    name = manishdotkr
-    email = officialmanishkr98@gmail.com
+    name = vatan18
+    email = vatan18@gmail.com
 [credential]
     helper = store
-    username = manishdotkr
+    username = vatan18
 ```
 
 ### Step 2: Install Git Credential Helper

@@ -9,8 +9,8 @@ PM2 is a production process manager for Node.js applications, which ensures that
 Before deploying or running the application, it's important to ensure you have the latest code and dependencies set up:
 
 ```bash
-# Fetch the latest changes from the repository and reset to a specific branch (e.g., release/manish)
-git fetch origin && git reset origin/release/manish --hard
+# Fetch the latest changes from the repository and reset to a specific branch (e.g., release/vatan)
+git fetch origin && git reset origin/release/vatan --hard
 
 # Remove existing node modules and the yarn lock file
 rm -rf node_modules

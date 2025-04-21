@@ -17,9 +17,9 @@ kubectl config get-contexts
 Example output:
 ```
 CURRENT   NAME                                                              CLUSTER                                                           AUTHINFO                                                          NAMESPACE
-*         arn:aws:eks:us-east-2:313686187887:cluster/manish-terraform-eks   arn:aws:eks:us-east-2:313686187887:cluster/manish-terraform-eks   arn:aws:eks:us-east-2:313686187887:cluster/manish-terraform-eks   manishboard-ns
-          arn:aws:eks:us-east-2:313686187887:cluster/manish-testing-eks     arn:aws:eks:us-east-2:313686187887:cluster/manish-testing-eks     arn:aws:eks:us-east-2:313686187887:cluster/manish-testing-eks     manishboard-ns
-          default                                                           default                                                           default                                                           manishboard-ns
+*         arn:aws:eks:us-east-2:313686187887:cluster/vatan-terraform-eks   arn:aws:eks:us-east-2:313686187887:cluster/vatan-terraform-eks   arn:aws:eks:us-east-2:313686187887:cluster/vatan-terraform-eks   vatanboard-ns
+          arn:aws:eks:us-east-2:313686187887:cluster/vatan-testing-eks     arn:aws:eks:us-east-2:313686187887:cluster/vatan-testing-eks     arn:aws:eks:us-east-2:313686187887:cluster/vatan-testing-eks     vatanboard-ns
+          default                                                           default                                                           default                                                           vatanboard-ns
 ```
 
 The asterisk (`*`) indicates the currently active context.
@@ -37,7 +37,7 @@ kubectl config use-context default
 To switch to a specific EKS cluster:
 
 ```bash
-kubectl config use-context arn:aws:eks:us-east-2:313686187887:cluster/manish-terraform-eks
+kubectl config use-context arn:aws:eks:us-east-2:313686187887:cluster/vatan-terraform-eks
 ```
 
 ### Method 2: Using the `--context` Flag
@@ -46,7 +46,7 @@ You can also use the `--context` flag with any kubectl command to use a specific
 
 ```bash
 kubectl --context=default get pods
-kubectl --context=arn:aws:eks:us-east-2:313686187887:cluster/manish-terraform-eks get pods
+kubectl --context=arn:aws:eks:us-east-2:313686187887:cluster/vatan-terraform-eks get pods
 ```
 
 ## Viewing Current Context
@@ -84,7 +84,7 @@ For frequently used clusters, you can create shell aliases in your `.bashrc` or 
 ```bash
 # Add to your .bashrc or .zshrc
 alias k8s-local='kubectl config use-context default'
-alias k8s-eks='kubectl config use-context arn:aws:eks:us-east-2:313686187887:cluster/manish-terraform-eks'
+alias k8s-eks='kubectl config use-context arn:aws:eks:us-east-2:313686187887:cluster/vatan-terraform-eks'
 ```
 
 ## Managing Namespaces
@@ -99,7 +99,7 @@ kubectl config set-context --current --namespace=your-namespace
 
 1. **Rename Long Contexts**: Consider renaming long AWS ARNs to simpler names:
    ```bash
-   kubectl config rename-context arn:aws:eks:us-east-2:313686187887:cluster/manish-terraform-eks eks-terraform
+   kubectl config rename-context arn:aws:eks:us-east-2:313686187887:cluster/vatan-terraform-eks eks-terraform
    ```
 
 2. **Separate Kubeconfig Files**: For production environments, consider using separate kubeconfig files:

@@ -50,7 +50,7 @@ metadata:
   namespace: cert-manager
 spec:
   acme:
-    email: devops@manish.kr
+    email: devops@vatan.kr
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-account-key
