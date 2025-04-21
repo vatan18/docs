@@ -12,9 +12,9 @@ aws sts get-caller-identity
 ### Example Output:
 ```json
 {
-    "UserId": "AROAUSCJHL5XQYQVFZKUW:Vatan.kumar201",
-    "Account": "313686187887",
-    "Arn": "arn:aws:sts::313686187887:assumed-role/AWSReservedSSO_impressico_devops_trainees_dcc3ac98552ae429/Vatan.kumar201"
+    "UserId": "AROAUSCJHL5XQYQUW:Vatan",
+    "Account": "123456789",
+    "Arn": "arn:aws:sts::123456789:assumed-role/AWSReservedSSO_any-user
 }
 ```
 ## 2. List all the permission set available
@@ -25,13 +25,10 @@ aws iam list-roles --query "Roles[*].RoleName"
 ### Example Output:
 ```json
 [
-    "AWSReservedSSO_deepak.kumar201_977d802d5696b25a",
-    "AWSReservedSSO_devops_admin_6d6ecfcc2abe2c1b",
-    "AWSReservedSSO_devops_Trainees_new_3bea47d347376d12",
-    "AWSReservedSSO_impressico_devops_trainees_dcc3ac98552ae429",
-    "AWSReservedSSO_Vatankumar201_33e09fa248aadf50",
-    "AWSReservedSSO_Siddhant_Sharma_Traniee_25e9e567c44b2410",
-    "AWSReservedSSO_Vansh_Devops_Trainee_f48024ecb434468c",
+
+    "AWSReservedSSO_anyuser",
+
+    "AWSReservedSSO_devops__6d62abe2c1b",
 ]
 ```
 
@@ -39,9 +36,9 @@ aws iam list-roles --query "Roles[*].RoleName"
 To check all inline policies attached to your assumed role, use:
 
 ```sh
-aws iam list-role-policies --role-name AWSReservedSSO_Vatankumar201_33e09fa248aadf50
+aws iam list-role-policies --role-name AWSReservedSSO_anyuser
 # or
-aws iam list-role-policies --role-name AWSReservedSSO_impressico_devops_trainees_dcc3ac98552ae429
+aws iam list-role-policies --role-name AWSReservedSSO_devops__6d62abe2c1b    
 ```
 
 ### Example Output:
@@ -57,15 +54,15 @@ aws iam list-role-policies --role-name AWSReservedSSO_impressico_devops_trainees
 Once you have identified the inline policy name, retrieve its details:
 
 ```sh
-aws iam get-role-policy --role-name AWSReservedSSO_Vatankumar201_33e09fa248aadf50 --policy-name AwsSSOInlinePolicy
+aws iam get-role-policy --role-name AWSReservedSSO_anyuser --policy-name AwsSSOInlinePolicy
 # or
-aws iam get-role-policy --role-name AWSReservedSSO_impressico_devops_trainees_dcc3ac98552ae429 --policy-name AwsSSOInlinePolicy
+aws iam get-role-policy --role-name AWSReservedSSO_anyuser --policy-name AwsSSOInlinePolicy
 ```
 
 ### Example Output:
 ```json
 {
-    "RoleName": "AWSReservedSSO_impressico_devops_trainees_dcc3ac98552ae429",
+    "RoleName": "AWSReservedSSO_devops__6d62abe2c1b",
     "PolicyName": "AwsSSOInlinePolicy",
     "PolicyDocument": {
         "Version": "2012-10-17",
