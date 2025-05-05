@@ -39,4 +39,9 @@ Press : and type contexts to see available contexts.
 
 Select the desired cluster to start managing resources.
 
+To connect to a specific context: k9s --context your-context-name
+To connect to a specific namespace: k9s --namespace your-namespace
+
+kubectl get nodes --context arn:aws:eks:us-east-1:[Account-ID]:cluster/cluster-name
+
 Would you like help automating this setup for easier multi-cluster access? 🚀
