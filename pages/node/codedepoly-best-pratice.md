@@ -107,24 +107,41 @@ pm2 start dist/server.js --name tracker-server -i max     # cluster mode
 pm2 start dist/server.js --name tracker-server            # fork mode
 Save the process list:
 
-bash
-Copy
-Edit
-pm2 save
-Generate systemd startup service (required because Node is from NVM or custom path):
+Start your app with PM2 (if not already done):
 
 bash
 Copy
 Edit
-sudo env PATH=$PATH:/home/ubuntu/.nvm/versions/node/v20.18.2/bin \
-  /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ubuntu --hp /home/ubuntu
-Confirm persistence:
+pm2 start dist/server.js --name tracker-server -i 0
+# OR
+pm2 start dist/server.js --name tracker-server
+Save the process list:
 
 bash
 Copy
 Edit
 pm2 save
-Now create an AMI from this EC2 instance and attach it to your Auto Scaling Group.
+Generate and configure PM2 startup script:
+
+bash
+Copy
+Edit
+pm2 startup
+This command will print another command like:
+
+ruby
+Copy
+Edit
+sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
+You must copy and run that exact command PM2 gives.
+
+Re-run pm2 save again (optional but safe):
+
+bash
+Copy
+Edit
+pm2 save
+
 
 3️⃣ AWS CodeDeploy – Best Practices (Especially with Auto Scaling)
 Practice	Description
