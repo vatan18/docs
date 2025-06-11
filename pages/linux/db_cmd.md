@@ -1,0 +1,1 @@
+mongodump --uri="mongodb://ip/dns-name:27017/database-name" --out=./db_backup

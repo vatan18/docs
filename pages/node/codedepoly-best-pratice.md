@@ -116,6 +116,12 @@ pm2 start dist/server.js --name tracker-server -i 0
 # OR
 pm2 start dist/server.js --name tracker-server
 Save the process list:
+#!/bin/bash
+# Restart agents in case the AMI saved them in a stopped state
+sudo systemctl restart codedeploy-agent
+sudo systemctl restart amazon-cloudwatch-agent
+
+echo "User-data complete. CodeDeploy will handle application deployment."
 
 bash
 Copy
