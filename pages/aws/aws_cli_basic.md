@@ -41,3 +41,11 @@ aws ecs execute-command \
     --region us-east-2 \
     --command-id 22f205e8-715b-427a-83fc-91d6ed671663  \
     --details
+
+  bucket copy
+  # Step 1: Download from source bucket
+aws s3 sync s3://ioc-web-app ./ioc-web-app
+
+# Step 2: Upload to backup bucket
+aws s3 sync ./ioc-web-app s3://ioc-web-app-backup
+ 
