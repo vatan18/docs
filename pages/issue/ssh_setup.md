@@ -21,7 +21,7 @@ cat ~/.ssh/id_ed25519.pub
 echo "✅ SSH key generated. Now add the public key above to your Git provider."
 
     💡 You only need to generate and add the SSH key once per machine.
-'''    
+''' bash    
 
 📝 SSH Setup Guide
 
