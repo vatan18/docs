@@ -85,3 +85,10 @@ Upgrades the distribution, including new packages and potential system upgrades.
 ```bash
 sudo apt dist-upgrade
 ```
+### Bonus: Clean up and speed up your system
+
+sudo apt autoremove           # Removes unused packages
+sudo apt clean                # Clears local repository of retrieved package files
+sudo apt autoclean            # Removes outdated package files
+
+This keeps your package cache clean and frees disk space.
