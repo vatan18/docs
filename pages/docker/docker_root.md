@@ -17,3 +17,12 @@ Try running a Docker command without sudo:
 ```bash
 docker ps
 ```
+-----------------------------
+## docker-compose rebuild 
+```bash
+docker-compose up --build
+```
+## docker-compose rebuild from scratch 
+```bash
+docker-compose down -v --remove-orphans && docker-compose up --build
+```
