@@ -6,8 +6,8 @@
 # 1. Generate SSH key (use ed25519 if supported)
 ssh-keygen -t ed25519 -C "$USER@$(hostname)"
 
-# OR fallback to RSA if needed (e.g., for older services)
-# ssh-keygen -t rsa -b 4096 -C "$USER@$(hostname)"
+OR fallback to RSA if needed (e.g., for older services)
+ssh-keygen -t rsa -b 4096 -C "$USER@$(hostname)"
 
 # 2. Start the ssh-agent in the background
 eval "$(ssh-agent -s)"
