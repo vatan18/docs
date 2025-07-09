@@ -1,0 +1,307 @@
+{#- Define variables and validate required inputs -#}
+{% set env = lookup('env','env') | default('development') %}
+{% set product = lookup('env','product') | default('') %}
+{% set service = lookup('env','service') | default('') %}
+
+{#- Validate required variables -#}
+{% if not product or not service %}
+  {% set error_msg = "ERROR: Both 'product' and 'service' environment variables must be set" %}
+  {{ error_msg }}
+  {% error error_msg %}
+{% endif %}
+
+{#- Construct secret name -#}
+{% set secret_name = [env, product, service] | join('/') %}
+
+{#- Get configuration objects with defaults -#}
+{% set kube = kubernetes.get(env, {}) %}
+{% set cfg = config.get(env, {}) %}
+{% set common = kubernetes.get('common', {}) %}
+
+{#- Helper macro for rendering YAML with proper indentation -#}
+{% macro render_yaml_block(data, indent=2) -%}
+{% if data %}
+{{ data | to_nice_yaml(indent=indent) | indent(indent) }}
+{% else %}
+  {}
+{% endif %}
+{%- endmacro %}
+
+{#- Helper macro for rendering key-value pairs -#}
+{% macro render_key_value_pairs(data, quote_values=true) -%}
+{% if data and data | length > 0 %}
+{% for key, value in data.items() %}
+  {{ key }}: {% if quote_values %}"{{ value }}"{% else %}{{ value }}{% endif %}
+{% endfor %}
+{% else %}
+  {}
+{% endif %}
+{%- endmacro %}
+
+{#- Helper macro for rendering annotations -#}
+{% macro render_annotations(annotations) -%}
+{% if annotations and annotations | length > 0 %}
+  annotations:
+{% for key, value in annotations.items() %}
+    {{ key }}: "{{ value }}"
+{% endfor %}
+{% else %}
+  annotations: {}
+{% endif %}
+{%- endmacro %}
+
+{#- Main template starts here -#}
+# Generated Helm values for {{ env }}/{{ product }}/{{ service }}
+# Template generated on: {{ ansible_date_time.iso8601 | default('unknown') }}
+
+# Basic Configuration
+replicaCount: {{ kube.get('replicaCount', 1) }}
+
+nameOverride: {{ common.get('nameOverride', '') | to_json }}
+fullnameOverride: {{ common.get('fullnameOverride', '') | to_json }}
+
+# Image Configuration
+image:
+{% set image_config = common.get('image', {}) %}
+{% if image_config %}
+{% for key, value in image_config.items() %}
+  {{ key }}: "{{ value }}"
+{% endfor %}
+{% else %}
+  repository: "nginx"
+  tag: "latest"
+  pullPolicy: "IfNotPresent"
+{% endif %}
+
+# Service Account Configuration
+serviceAccount:
+{% set sa_config = common.get('serviceAccount', {}) %}
+{% if sa_config.get('create', false) %}
+  create: true
+  name: "{{ sa_config.get('name', '') }}"
+  {{ render_annotations(sa_config.get('annotations', {})) }}
+{% else %}
+  create: false
+  name: ""
+  annotations: {}
+{% endif %}
+
+# Pod Annotations
+podAnnotations:
+{{ render_key_value_pairs(common.get('podAnnotations', {})) }}
+
+# Pod Security Context
+podSecurityContext:
+{{ render_yaml_block(common.get('podSecurityContext', {})) }}
+
+# Service Configuration
+service:
+{% set service_config = common.get('service', {}) %}
+{% if service_config %}
+{% for key, value in service_config.items() %}
+{% if key == "annotations" %}
+  {{ key }}:
+{% for akey, avalue in value.items() %}
+    {{ akey }}: "{{ avalue }}"
+{% endfor %}
+{% elif key in ["type", "port", "targetPort"] %}
+  {{ key }}: {{ value }}
+{% else %}
+  {{ key }}: "{{ value }}"
+{% endif %}
+{% endfor %}
+{% else %}
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+{% endif %}
+
+# Security Context
+securityContext:
+{% set sec_context = common.get('securityContext', {}) %}
+{% if sec_context %}
+{% for key, value in sec_context.items() %}
+  {{ key }}:
+{% if value is mapping %}
+{% for subkey, subvalue in value.items() %}
+    {{ subkey }}: {{ subvalue }}
+{% endfor %}
+{% else %}
+    {{ value }}
+{% endif %}
+{% endfor %}
+{% else %}
+  {}
+{% endif %}
+
+# Ingress Configuration
+{% set ingress_config = kube.get('ingress', {}) %}
+{% if ingress_config %}
+ingress:
+{% for key, value in ingress_config.items() %}
+{% if key == "enabled" %}
+  {{ key }}: {{ value | lower }}
+{% elif key == "className" %}
+  {{ key }}: "{{ value }}"
+{% elif key == "annotations" %}
+  {{ key }}:
+{% for akey, avalue in value.items() %}
+    {{ akey }}: "{{ avalue }}"
+{% endfor %}
+{% elif key == "hosts" %}
+  {{ key }}:
+{% for host in value %}
+    - host: {{ host.host }}
+      paths:
+{% for path in host.paths %}
+        - path: {{ path.path }}
+          pathType: {{ path.pathType }}
+{% endfor %}
+{% endfor %}
+{% elif key == "tls" %}
+  {{ key }}:
+{% for tls_item in value %}
+    - secretName: {{ tls_item.secretName }}
+      hosts:
+{% for host in tls_item.hosts %}
+        - {{ host }}
+{% endfor %}
+{% endfor %}
+{% else %}
+  {{ key }}: "{{ value }}"
+{% endif %}
+{% endfor %}
+{% else %}
+ingress:
+  enabled: false
+{% endif %}
+
+# Node Selector
+nodeSelector:
+{{ render_key_value_pairs(common.get('nodeSelector', {})) }}
+
+# Tolerations
+tolerations:
+{% set tolerations_list = common.get('tolerations', []) %}
+{% if tolerations_list %}
+{% for item in tolerations_list %}
+  - key: "{{ item.key }}"
+    operator: "{{ item.operator }}"
+    {% if item.value is defined %}value: "{{ item.value }}"{% endif %}
+    effect: "{{ item.effect }}"
+    {% if item.tolerationSeconds is defined %}tolerationSeconds: {{ item.tolerationSeconds }}{% endif %}
+{% endfor %}
+{% else %}
+  []
+{% endif %}
+
+# Affinity Rules
+affinity:
+{{ render_yaml_block(common.get('affinity', {})) }}
+
+# Resource Limits and Requests
+{% set resources = kube.get('resources', {}) %}
+{% if resources %}
+resources:
+{% if resources.get('requests') %}
+  requests:
+    cpu: "{{ resources.requests.get('cpu', '100m') }}"
+    memory: "{{ resources.requests.get('memory', '128Mi') }}"
+{% endif %}
+{% if resources.get('limits') %}
+  limits:
+    cpu: "{{ resources.limits.get('cpu', '500m') }}"
+    memory: "{{ resources.limits.get('memory', '512Mi') }}"
+{% endif %}
+{% else %}
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+{% endif %}
+
+# Horizontal Pod Autoscaling
+{% set hpa_config = kube.get('autoscaling', {}) %}
+{% if hpa_config and hpa_config.get('enabled', false) %}
+autoscaling:
+  enabled: true
+  minReplicas: {{ hpa_config.get('minReplicas', 1) }}
+  maxReplicas: {{ hpa_config.get('maxReplicas', 10) }}
+  targetCPUUtilizationPercentage: {{ hpa_config.get('targetCPUUtilizationPercentage', 80) }}
+  {% if hpa_config.get('targetMemoryUtilizationPercentage') %}
+  targetMemoryUtilizationPercentage: {{ hpa_config.targetMemoryUtilizationPercentage }}
+  {% endif %}
+{% else %}
+autoscaling:
+  enabled: false
+{% endif %}
+
+# Persistent Volume Configuration
+{% set persistence_config = kube.get('persistence', {}) %}
+{% if persistence_config %}
+persistence:
+  enabled: {{ persistence_config.get('enabled', false) | lower }}
+  {% if persistence_config.get('enabled', false) %}
+  storageClass: "{{ persistence_config.get('storageClass', 'default') }}"
+  accessMode: "{{ persistence_config.get('accessMode', 'ReadWriteOnce') }}"
+  size: "{{ persistence_config.get('size', '1Gi') }}"
+  {% if persistence_config.get('mountPath') %}
+  mountPath: "{{ persistence_config.mountPath }}"
+  {% endif %}
+  {% if persistence_config.get('subPath') %}
+  subPath: "{{ persistence_config.subPath }}"
+  {% endif %}
+  {% endif %}
+{% else %}
+persistence:
+  enabled: false
+{% endif %}
+
+# Environment Variables
+envVars:
+{% if cfg %}
+{% for key, value in cfg.items() %}
+  {{ key }}:
+    value: "{{ value }}"
+{% endfor %}
+{% endif %}
+
+# Secrets from AWS Secrets Manager
+{% set aws_secret_data = lookup('aws_secret', secret_name, wantlist=true) | default([]) %}
+{% if aws_secret_data %}
+{% for secret_json in aws_secret_data %}
+{% set secret_dict = secret_json | from_json %}
+{% for key, value in secret_dict.items() %}
+  {{ key }}:
+    valueFrom:
+      secretKeyRef:
+        name: "{{ service }}-secrets"
+        key: "{{ key }}"
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+# Probes Configuration
+{% set probes = kube.get('probes', {}) %}
+{% if probes %}
+livenessProbe:
+{{ render_yaml_block(probes.get('liveness', {})) }}
+
+readinessProbe:
+{{ render_yaml_block(probes.get('readiness', {})) }}
+
+startupProbe:
+{{ render_yaml_block(probes.get('startup', {})) }}
+{% endif %}
+
+# Additional Labels
+additionalLabels:
+{% set additional_labels = common.get('additionalLabels', {}) %}
+{% if additional_labels %}
+{{ render_key_value_pairs(additional_labels) }}
+{% else %}
+  {}
+{% endif %}
