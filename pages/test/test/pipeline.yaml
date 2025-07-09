@@ -1,0 +1,61 @@
+version: 0.2
+env:
+  variables:
+    environment: "${ENVIRONMENT}"
+    product: "${PRODUCT}"
+    service: "${SERVICE}"
+phases:
+  install:
+    commands:
+      - echo "Installing dependencies..."
+      - pip install ansible
+      - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.32.0/2024-12-20/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl
+      - mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$HOME/bin:$PATH
+  pre_build:
+    commands:
+      - echo "Preparing to deploy CloudFormation template..."
+      - export stack_name="${environment}-${product}-${service}"
+      - echo "Stack name will be:" $stack_name
+  build:
+    commands:
+      - echo "Deploying CloudFormation template..."
+      - |
+        aws cloudformation deploy \
+          --stack-name "$stack_name" \
+          --template-file aws/cloudformation/templates/eks/defaultNodegroup.yaml \
+          --parameter-overrides \
+            environment=$environment \
+            product=$product \
+            service=$service \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --region "$AWS_REGION" \
+          --no-fail-on-empty-changeset \
+          --tags environment=$environment product=$product service=$service
+      - echo "Running Ansible playbook for EKS ConfigMap configuration..."
+      - |
+        ansible-playbook ansible/eks.yml -e "env=${environment} product=${product}"
+      - cat /tmp/aws-auth.yaml  
+      - echo "Configuring kubectl with EKS cluster..."
+      - aws eks update-kubeconfig --name "${environment}-${product}-${service}" --region "${AWS_REGION}"
+      - kubectl apply -f /tmp/aws-auth.yaml -v=6
+      - echo "\n\nWaiting to let the Nodes come online\n\n"
+      - echo "\n\nInstalling repos using Helm\n\n"
+      - helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+      - helm repo add autoscaler https://kubernetes.github.io/autoscaler
+      - helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+      - helm repo update
+      - echo "Installing Metrics Server..."
+      - helm upgrade --install metrics-server metrics-server/metrics-server --namespace kube-system --version 3.12.2
+      - echo "Installing Ingress-NGINX Controller..."
+      - helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace  --version 4.12.1 -f helm/ingress-nginx/values.yml --set controller.service.annotations.'service\.beta\.kubernetes\.io/aws-load-balancer-ssl-cert'=${certArn}
+      - echo "Installing Cluster Autoscaler..."
+      - helm upgrade --install cluster-autoscaler autoscaler/cluster-autoscaler --namespace kube-system --set autoDiscovery.clusterName=${environment}-${product}-${service} --set awsRegion=$AWS_REGION --set rbac.create=true --version 9.46.6
+      - echo "\n\nWaiting to let the Helm installs register\n\n"
+      - sleep 30
+      - kubectl get pods -A
+
+artifacts:
+  files:
+    - "**/*"

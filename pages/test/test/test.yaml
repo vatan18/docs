@@ -1,0 +1,229 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS EKS cluster with default node group and addons'
+Parameters:
+  environment:
+    Type: String
+    Description: Environment type
+  product:
+    Type: String
+    Description: Product name
+  service:
+    Type: String
+    Default: 'eks'
+    Description: Service name
+  storageSize:
+    Type: Number
+    Default: 80
+    Description: Node disk size in GB 
+  isProdEnv:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Set to true for production-like environments
+  eksVersion:
+    Type: String
+    Default: '1.32'
+    Description: EKS cluster version
+  vpcCniVersion:
+    Type: String
+    Default: v1.19.3-eksbuild.1
+  kubeProxyVersion:
+    Type: String
+    Default: v1.32.0-eksbuild.2
+  coreDnsVersion:
+    Type: String
+    Default: v1.11.4-eksbuild.2 
+  ebsCsiVersion:
+    Type: String
+    Default: v1.41.0-eksbuild.1
+  podIdentityVersion:
+    Type: String
+    Default: v1.3.5-eksbuild.2 
+Conditions:
+  isProd: !Equals [!Ref isProdEnv, "true"]
+Mappings:
+  default:
+    dev:
+      minSize: 1
+      maxSize: 2
+      desiredSize: 1
+    prod:
+      minSize: 2
+      maxSize: 4
+      desiredSize: 2
+Resources:
+  eksClusterRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub '${environment}-${product}-${service}-cluster-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKSClusterPolicy'
+  clusterAutoscalerPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      ManagedPolicyName: !Sub '${environment}-${product}-${service}-autoscaler-policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'autoscaling:DescribeAutoScalingGroups'
+              - 'autoscaling:DescribeAutoScalingInstances'
+              - 'autoscaling:DescribeLaunchConfigurations'
+              - 'autoscaling:DescribeTags'
+              - 'autoscaling:SetDesiredCapacity'
+              - 'autoscaling:TerminateInstanceInAutoScalingGroup'
+              - 'ec2:DescribeLaunchTemplateVersions'
+              - 'ec2:DescribeInstances'
+              - 'ec2:DescribeInstanceTypes'
+              - 'ec2:DescribeImages'
+              - 'ec2:GetInstanceTypesFromInstanceRequirements'
+            Resource: '*'
+  workerNodeInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub '${environment}-${product}-${service}-node-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy'
+        - 'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy'
+        - 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly'
+        - 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
+        - !Ref clusterAutoscalerPolicy
+  eksSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Security group for EKS cluster allowing only VPC CIDR'
+      VpcId: !ImportValue 
+        'Fn::Sub': '${environment}-${product}-vpc'
+      SecurityGroupIngress:
+        -
+          IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 10.94.0.0/16
+        -
+          IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 10.95.0.0/16
+        -
+          IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 10.96.0.0/16
+  eksCluster:
+    Type: 'AWS::EKS::Cluster'
+    Properties:
+      Name: !Sub '${environment}-${product}-${service}'
+      Version: !Ref eksVersion
+      RoleArn: !GetAtt eksClusterRole.Arn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref eksSecurityGroup
+        SubnetIds:
+          - !ImportValue
+              Fn::Sub: '${environment}-${product}-vpc-private-subnet-a'
+          - !ImportValue
+              Fn::Sub: '${environment}-${product}-vpc-private-subnet-b'
+          - !ImportValue
+              Fn::Sub: '${environment}-${product}-vpc-private-subnet-c'
+        EndpointPublicAccess: false
+        EndpointPrivateAccess: true
+  eksNodeGroup:
+    Type: 'AWS::EKS::Nodegroup'
+    DependsOn: eksCluster
+    Properties:
+      ClusterName: !Ref eksCluster
+      NodegroupName: !Sub '${environment}-${product}-${service}-default'
+      NodeRole: !GetAtt workerNodeInstanceRole.Arn
+      ScalingConfig:
+        MinSize: !FindInMap [default, !Ref environment, minSize]
+        MaxSize: !FindInMap [default, !Ref environment, maxSize]
+        DesiredSize: !FindInMap [default, !Ref environment, desiredSize]
+      Subnets:
+        - !ImportValue
+            Fn::Sub: '${environment}-${product}-vpc-private-subnet-a'
+        - !ImportValue
+            Fn::Sub: '${environment}-${product}-vpc-private-subnet-b'
+        - !ImportValue
+            Fn::Sub: '${environment}-${product}-vpc-private-subnet-c'
+      AmiType: AL2_x86_64
+      DiskSize: !Ref storageSize
+      InstanceTypes:
+        !If 
+          - isProd
+          - [t3a.xlarge]
+          - [m4.large, m5.large, m5a.large, t2.large, t3.large, t3a.large, m5ad.large, m5d.large, m6a.large, m6i.large, m6in.large, m7i.large]
+      CapacityType: !If [isProd, 'ON_DEMAND', 'SPOT']
+  vpcCniAddon:
+    Type: 'AWS::EKS::Addon'
+    DependsOn: eksNodeGroup
+    Properties:
+      AddonName: vpc-cni
+      ClusterName: !Ref eksCluster
+      AddonVersion: !Ref vpcCniVersion
+      ResolveConflicts: PRESERVE
+  kubeProxyAddon:
+    Type: 'AWS::EKS::Addon'
+    DependsOn: eksNodeGroup
+    Properties:
+      AddonName: kube-proxy
+      ClusterName: !Ref eksCluster
+      AddonVersion: !Ref kubeProxyVersion
+      ResolveConflicts: PRESERVE
+  coreDnsAddon:
+    Type: 'AWS::EKS::Addon'
+    DependsOn: eksNodeGroup
+    Properties:
+      AddonName: coredns
+      ClusterName: !Ref eksCluster
+      AddonVersion: !Ref coreDnsVersion
+      ResolveConflicts: PRESERVE
+  ebsCsiDriverRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub '${environment}-${product}-${service}-ebs-csi-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy'
+  ebsCsiAddon:
+    Type: 'AWS::EKS::Addon'
+    DependsOn: eksNodeGroup
+    Properties:
+      AddonName: aws-ebs-csi-driver
+      ClusterName: !Ref eksCluster
+      AddonVersion: !Ref ebsCsiVersion
+      ResolveConflicts: PRESERVE
+      ServiceAccountRoleArn: !GetAtt ebsCsiDriverRole.Arn
+  podIdentityAgentAddon:
+    Type: 'AWS::EKS::Addon'
+    DependsOn: eksNodeGroup
+    Properties:
+      AddonName: eks-pod-identity-agent
+      ClusterName: !Ref eksCluster
+      AddonVersion: !Ref podIdentityVersion
+      ResolveConflicts: PRESERVE
+Outputs:
+  eksClusterEndpoint:
+    Description: 'The endpoint for your EKS Kubernetes API'
+    Value: !GetAtt eksCluster.Endpoint
