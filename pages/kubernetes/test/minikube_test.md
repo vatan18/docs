@@ -7,7 +7,7 @@ This guide will walk you through setting up self-hosted GitHub Actions runners o
 - Docker installed on your system
 - `kubectl` command-line tool
 - `helm` package manager for Kubernetes
-- A GitHub account with repository/organization access
+- A GitHub account with repository/organization access 
 
 ## Step 1: Install Required Tools
 
