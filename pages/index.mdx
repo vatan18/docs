@@ -18,47 +18,68 @@ import { Rocket, Cloud, Cpu, Code, Database, Terminal } from "lucide-react"
     </p>
   </div>
 
-  {/* Topics Section */}
-  <div className="mt-16 max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-6">
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
-      <Cloud className="w-8 h-8 text-blue-500 mb-3" />
-      <h3 className="text-xl font-semibold mb-2">AWS ☁️</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Cloud services, IAM, EC2, S3, and automation workflows.</p>
-    </div>
-
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
-      <Cpu className="w-8 h-8 text-blue-600 mb-3" />
-      <h3 className="text-xl font-semibold mb-2">Docker 🐳</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Containerization, images, orchestration, and CI/CD pipelines.</p>
-    </div>
-
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
-      <Terminal className="w-8 h-8 text-purple-500 mb-3" />
-      <h3 className="text-xl font-semibold mb-2">Kubernetes ☸️</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Clusters, deployments, Helm charts, and scaling strategies.</p>
-    </div>
-
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
-      <Code className="w-8 h-8 text-green-500 mb-3" />
-      <h3 className="text-xl font-semibold mb-2">Terraform 🌍</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Infrastructure as code, provisioning, and cloud automation.</p>
-    </div>
-
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
-      <Database className="w-8 h-8 text-indigo-500 mb-3" />
-      <h3 className="text-xl font-semibold mb-2">PostgreSQL 🗄️</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Database management, queries, and DevOps data workflows.</p>
-    </div>
-
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
-      <Code className="w-8 h-8 text-yellow-500 mb-3" />
-      <h3 className="text-xl font-semibold mb-2">Python 🐍</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Scripting, automation, and DevOps tooling in Python.</p>
-    </div>
+{/* Topics Section */}
+<div className="mt-16 max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-6">
+  
+  <div className="p-6 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-800 dark:to-blue-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
+    <Cloud className="w-8 h-8 text-blue-600 mb-3" />
+    <h3 className="text-xl font-semibold mb-2">AWS ☁️</h3>
+    <p className="text-sm text-gray-700 dark:text-gray-300">
+      Cloud services, <strong>cheat sheet</strong>, and <strong>automation workflows</strong>.
+    </p>
   </div>
 
-  {/* Footer Note */}
-  <div className="mt-20 text-center text-gray-500 dark:text-gray-400 text-sm">
-    Built with ❤️ by Vatan
+  <div className="p-6 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-800 dark:to-blue-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
+    <Cpu className="w-8 h-8 text-blue-700 mb-3" />
+    <h3 className="text-xl font-semibold mb-2">Docker 🐳</h3>
+    <p className="text-sm text-gray-700 dark:text-gray-300">
+      <strong>Containerization</strong>, images, orchestration, and <strong>CI/CD pipelines</strong>.
+    </p>
   </div>
+
+  <div className="p-6 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
+    <Terminal className="w-8 h-8 text-purple-600 mb-3" />
+    <h3 className="text-xl font-semibold mb-2">Kubernetes ☸️</h3>
+    <p className="text-sm text-gray-700 dark:text-gray-300">
+      <strong>Clusters</strong>, deployments, Helm charts, and <strong>scaling strategies</strong>.
+    </p>
+  </div>
+
+  <div className="p-6 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-800 dark:to-green-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
+    <Code className="w-8 h-8 text-green-600 mb-3" />
+    <h3 className="text-xl font-semibold mb-2">Terraform 🌍</h3>
+    <p className="text-sm text-gray-700 dark:text-gray-300">
+      <strong>Infrastructure as Code</strong>, provisioning, and cloud automation.
+    </p>
+  </div>
+
+  <div className="p-6 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-800 dark:to-indigo-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
+    <Database className="w-8 h-8 text-indigo-600 mb-3" />
+    <h3 className="text-xl font-semibold mb-2">PostgreSQL 🗄️</h3>
+    <p className="text-sm text-gray-700 dark:text-gray-300">
+      <strong>Database management</strong>, queries, and DevOps <strong>data workflows</strong>.
+    </p>
+  </div>
+
+  <div className="p-6 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-800 dark:to-yellow-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
+    <Code className="w-8 h-8 text-yellow-600 mb-3" />
+    <h3 className="text-xl font-semibold mb-2">Python 🐍</h3>
+    <p className="text-sm text-gray-700 dark:text-gray-300">
+      <strong>Scripting</strong>, automation, and DevOps tooling in <strong>Python</strong>.
+    </p>
+  </div>
+  <div className="p-6 bg-gradient-to-br from-teal-100 to-teal-200 dark:from-teal-800 dark:to-teal-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
+    <Code className="w-8 h-8 text-teal-600 mb-3" />
+    <h3 className="text-xl font-semibold mb-2">Hacks & Tricks  🐧</h3>
+    <p className="text-sm text-gray-700 dark:text-gray-300">
+      <strong>Shell commands</strong>, scripting, and productivity <strong>hacks</strong>.
+    </p>
+  </div>
+
+</div>
+
+{/* Footer Note */}
+<div className="mt-20 text-center text-gray-500 dark:text-gray-400 text-sm">
+  Built with ❤️ by Vatan
+</div>
 </div>
