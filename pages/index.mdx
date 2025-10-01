@@ -19,67 +19,65 @@ import { Rocket, Cloud, Cpu, Code, Database, Terminal } from "lucide-react"
   </div>
 
 {/* Topics Section */}
-<div className="mt-16 max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-6">
-  
-  <div className="p-6 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-800 dark:to-blue-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
-    <Cloud className="w-8 h-8 text-blue-600 mb-3" />
+<div className="space-y-6">
+  {/* AWS */}
+  <div>
     <h3 className="text-xl font-extrabold mb-2">AWS ☁️</h3>
-    <p className="text-sm text-gray-700 dark:text-gray-300">
-      Cloud services, <strong>cheat sheet</strong>, and <strong>automation workflows</strong>.
+    <p className="text-gray-300">
+      Cloud services, cheat sheet, and automation workflows.
     </p>
   </div>
 
-  <div className="p-6 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-800 dark:to-blue-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
-    <Cpu className="w-8 h-8 text-blue-700 mb-3" />
+  {/* Docker */}
+  <div>
     <h3 className="text-xl font-extrabold mb-2">Docker 🐳</h3>
-    <p className="text-sm text-gray-700 dark:text-gray-300">
-      <strong>Containerization</strong>, images, orchestration, and <strong>CI/CD pipelines</strong>.
+    <p className="text-gray-300">
+      Containerization, images, orchestration, and CI/CD pipelines.
     </p>
   </div>
 
-  <div className="p-6 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
-    <Terminal className="w-8 h-8 text-purple-600 mb-3" />
+  {/* Kubernetes */}
+  <div>
     <h3 className="text-xl font-extrabold mb-2">Kubernetes ☸️</h3>
-    <p className="text-sm text-gray-700 dark:text-gray-300">
-      <strong>Clusters</strong>, deployments, Helm charts, and <strong>scaling strategies</strong>.
+    <p className="text-gray-300">
+      Clusters, deployments, Helm charts, and scaling strategies.
     </p>
   </div>
 
-  <div className="p-6 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-800 dark:to-green-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
-    <Code className="w-8 h-8 text-green-600 mb-3" />
+  {/* Terraform */}
+  <div>
     <h3 className="text-xl font-extrabold mb-2">Terraform 🌍</h3>
-    <p className="text-sm text-gray-700 dark:text-gray-300">
-      <strong>Infrastructure as Code</strong>, provisioning, and cloud automation.
+    <p className="text-gray-300">
+      Infrastructure as Code, provisioning, and cloud automation.
     </p>
   </div>
 
-  <div className="p-6 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-800 dark:to-indigo-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
-    <Database className="w-8 h-8 text-indigo-600 mb-3" />
+  {/* PostgreSQL */}
+  <div>
     <h3 className="text-xl font-extrabold mb-2">PostgreSQL 🗄️</h3>
-    <p className="text-sm text-gray-700 dark:text-gray-300">
-      <strong>Database management</strong>, queries, and DevOps <strong>data workflows</strong>.
+    <p className="text-gray-300">
+      Database management, queries, and DevOps data workflows.
     </p>
   </div>
 
-  <div className="p-6 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-800 dark:to-yellow-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
-    <Code className="w-8 h-8 text-yellow-600 mb-3" />
+  {/* Python */}
+  <div>
     <h3 className="text-xl font-extrabold mb-2">Python 🐍</h3>
-    <p className="text-sm text-gray-700 dark:text-gray-300">
-      <strong>Scripting</strong>, automation, and DevOps tooling in <strong>Python</strong>.
-    </p>
-  </div>
-  <div className="p-6 bg-gradient-to-br from-teal-100 to-teal-200 dark:from-teal-800 dark:to-teal-900 rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105">
-    <Code className="w-8 h-8 text-teal-600 mb-3" />
-    <h3 className="text-xl font-extrabold mb-2">Hacks & Tricks  🐧</h3>
-    <p className="text-sm text-gray-700 dark:text-gray-300">
-      <strong>Shell commands</strong>, scripting, and productivity <strong>hacks</strong>.
+    <p className="text-gray-300">
+      Scripting, automation, and DevOps tooling in Python.
     </p>
   </div>
 
-</div>
+  {/* Hacks & Tricks */}
+  <div>
+    <h3 className="text-xl font-extrabold mb-2">Hacks & Tricks 🐧</h3>
+    <p className="text-gray-300">
+      Shell commands, scripting, and productivity hacks.
+    </p>
+  </div>
 
-{/* Footer Note */}
-<div className="mt-20 text-center text-gray-500 dark:text-gray-400 text-sm">
-  Built with ❤️ by Vatan
-</div>
+  {/* Footer */}
+  <div className="text-center mt-8 pt-6 border-t border-gray-700">
+    <p className="text-gray-400">Built with ❤️ by Vatan</p>
+  </div>
 </div>
