@@ -1,25 +1,64 @@
-import { Card, CardContent } from '@/components/ui/card'
-import { Rocket, Terminal, Cloud, Cpu, Code } from 'lucide-react'
+import { Rocket, Cloud, Cpu, Code, Database, Terminal } from "lucide-react"
 
-# 🚀 DevOps Documentation & Notes
+<div className="relative py-16 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
 
-> _Your personal knowledge base for mastering modern DevOps tools and workflows._
+  {/* Hero Section */}
+  <div className="text-center max-w-3xl mx-auto px-6">
+    <h1 className="text-5xl font-extrabold mb-4 flex items-center justify-center gap-3 text-gray-900 dark:text-white">
+      <Rocket className="w-10 h-10 text-red-500" /> DevOps Documentation
+    </h1>
+    <p className="text-lg text-gray-600 dark:text-gray-300 italic">
+      Your personal knowledge base for mastering modern DevOps tools and workflows.
+    </p>
+    <p className="mt-4 text-gray-700 dark:text-gray-400">
+      Welcome to my DevOps brain dump – a curated hub of notes, guides, and insights 
+      from my real-world experience as a DevOps engineer. Whether you're just starting 
+      out or looking to refine your expertise, you'll find resources here to accelerate 
+      your learning.
+    </p>
+  </div>
 
-Welcome to my DevOps brain dump – a curated hub of notes, guides, and insights from my real-world experience as a DevOps engineer. Whether you're just starting out or looking to refine your expertise, you'll find resources here to accelerate your learning.
+  {/* Topics Section */}
+  <div className="mt-16 max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-6">
+    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
+      <Cloud className="w-8 h-8 text-blue-500 mb-3" />
+      <h3 className="text-xl font-semibold mb-2">AWS ☁️</h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">Cloud services, IAM, EC2, S3, and automation workflows.</p>
+    </div>
 
----
+    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
+      <Cpu className="w-8 h-8 text-blue-600 mb-3" />
+      <h3 className="text-xl font-semibold mb-2">Docker 🐳</h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">Containerization, images, orchestration, and CI/CD pipelines.</p>
+    </div>
 
-## 🧭 Explore Key Topics
+    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
+      <Terminal className="w-8 h-8 text-purple-500 mb-3" />
+      <h3 className="text-xl font-semibold mb-2">Kubernetes ☸️</h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">Clusters, deployments, Helm charts, and scaling strategies.</p>
+    </div>
 
-```mermaid
-graph TD
-    DevOps_Docs[DevOps Docs 🔧] --> AWS[☁️ AWS]
-    DevOps_Docs --> Docker[🐳 Docker]
-    DevOps_Docs --> Git[🔀 Git]
-    DevOps_Docs --> Kubernetes[☸️ Kubernetes]
-    DevOps_Docs --> Linux[🐧 Linux (Ubuntu)]
-    DevOps_Docs --> Nginx[🚪 Nginx]
-    DevOps_Docs --> Node[🟢 Node.js]
-    DevOps_Docs --> PostgreSQL[🗄️ PostgreSQL]
-    DevOps_Docs --> Python[🐍 Python]
-    DevOps_Docs --> Terraform[🌍 Terraform]
+    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
+      <Code className="w-8 h-8 text-green-500 mb-3" />
+      <h3 className="text-xl font-semibold mb-2">Terraform 🌍</h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">Infrastructure as code, provisioning, and cloud automation.</p>
+    </div>
+
+    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
+      <Database className="w-8 h-8 text-indigo-500 mb-3" />
+      <h3 className="text-xl font-semibold mb-2">PostgreSQL 🗄️</h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">Database management, queries, and DevOps data workflows.</p>
+    </div>
+
+    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition">
+      <Code className="w-8 h-8 text-yellow-500 mb-3" />
+      <h3 className="text-xl font-semibold mb-2">Python 🐍</h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">Scripting, automation, and DevOps tooling in Python.</p>
+    </div>
+  </div>
+
+  {/* Footer Note */}
+  <div className="mt-20 text-center text-gray-500 dark:text-gray-400 text-sm">
+    Built with ❤️ by Vatan
+  </div>
+</div>
