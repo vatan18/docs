@@ -1,5 +1,4 @@
 # Migrating Multiple ALBs to a Single Ingress ALB with WAF Integration
-![Diagram showing multiple Kubernetes Ingress resources consolidating into a single shared AWS ALB, with AWS WAF integrating to apply IP-based access rules per subdomain before traffic reaches the EKS cluster.](docs/images/alb-waf.png)
 
 This guide outlines the process of consolidating multiple AWS Application Load Balancers (ALBs) managed by Kubernetes Ingress resources into a single shared Ingress ALB. It also covers integrating AWS WAF for enhanced security on your subdomains and services, specifically focusing on how to translate Ingress-level CIDR restrictions into WAF rules.
 
