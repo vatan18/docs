@@ -86,63 +86,89 @@ For each Ingress resource you want to include in the shared ALB, you'll need to 
 
 ### Example Ingress Modification:
 
-**Original Ingress (example):**
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: my-service-ingress
-  namespace: my-app
-  annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-spec:
-  rules:
-  - host: my-service.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: my-service
-            port:
-              number: 80
-```
-
 **Modified Ingress for shared ALB:**
+This is a comprehensive guide! It clearly outlines the steps for consolidating ALBs and integrating WAF.
+Here's an example of how you would modify a single Ingress file to use a shared ALB and offload the CIDR restrictions to WAF via annotations.
+
+### Single Ingress File with Shared ALB and WAF Annotations
+
+This example assumes you have two subdomains: `service1.example.com` and `service2.example.com`. Instead of using `alb.ingress.kubernetes.io/inbound-cidrs` directly on the Ingress, we'll configure WAF to handle these restrictions by referencing WAF IP Sets you've created (e.g., via CloudFormation, as in your `EKSWAFWebACL` example).
+
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: my-service-ingress
-  namespace: my-app
+  name: shared-alb-main-ingress
+  namespace: default # Or the namespace where your main services reside
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/group.name: shared-alb # <-- Add this
-    alb.ingress.kubernetes.io/group.order: '10'    # <-- Add this (adjust order as needed)
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]' # <-- Add/Ensure
-    alb.ingress.kubernetes.io/ssl-redirect: '443'  # <-- Add (if desired)
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT_ID:certificate/CERT_ID # <-- Add your cert ARN
+    alb.ingress.kubernetes.io/group.name: shared-alb
+    alb.ingress.kubernetes.io/group.order: '1' # This Ingress might serve as the primary configuration
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT_ID:certificate/CERT_ID # Replace with your ACM cert ARN
+
+    # WAF Integration Annotations
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:REGION:ACCOUNT_ID:webacl/EKS-WAF-ALB-Environment/WEB_ACL_ID # Replace with your WAF WebACL ARN
+
+    # IMPORTANT: The 'alb.ingress.kubernetes.io/inbound-cidrs' annotation is REMOVED from here.
+    # Its functionality is now handled by WAF rules, which use IP Sets.
+    # For instance, if you previously had:
+    # alb.ingress.kubernetes.io/inbound-cidrs: 192.168.1.0/24,10.0.0.0/16
+    # These CIDRs should now be defined in WAF IP Sets (e.g., ReferenceIPSet1, ReferenceIPSet2 in your CFT).
+
 spec:
   rules:
-  - host: my-service.example.com
+  - host: service1.example.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: my-service
+            name: service1-service # Your Kubernetes Service for service1
             port:
               number: 80
+  - host: service2.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: service2-service # Your Kubernetes Service for service2
+            port:
+              number: 80
+  # You can add more hosts and their corresponding backends to this single Ingress file.
+  # The WAF rules will then evaluate traffic based on the 'Host' header for each domain.
 ```
 
-Apply these changes to all relevant Ingress resources:
-```sh
-kubectl apply -f ingress.yaml
-```
+**Explanation of Changes:**
+
+1.  **Consolidation:** All rules for `service1.example.com` and `service2.example.com` (and any other services you want to route through this shared ALB) are now within a single `Ingress` resource.
+2.  **Shared ALB Group:** `alb.ingress.kubernetes.io/group.name: shared-alb` and `alb.ingress.kubernetes.io/group.order: '1'` are set to ensure this Ingress is part of your shared ALB configuration.
+3.  **WAF Association:** The key annotation `alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:REGION:ACCOUNT_ID:webacl/EKS-WAF-ALB-Environment/WEB_ACL_ID` is added. This tells the AWS Load Balancer Controller to associate your defined WAF WebACL with the shared ALB it creates or manages.
+4.  **Removal of `inbound-cidrs`:** The `alb.ingress.kubernetes.io/inbound-cidrs` annotation is explicitly *removed*. Its functionality is now delegated entirely to AWS WAF.
+5.  **WAF Rule Implementation (External to Ingress):**
+    *   You would maintain your `EKSWAFWebACL` (from your CloudFormation example) to define the actual CIDR-based access rules.
+    *   **ReferenceIPSet1ARN** would contain the CIDRs allowed for `service1.example.com`.
+    *   **ReferenceIPSet2ARN** would contain the CIDRs allowed for `service2.example.com`.
+    *   The WAF rules (`Service1DomainAccessRule`, `Service2DomainAccessRule`) in your CloudFormation template use `ByteMatchStatement` on the `Host` header to identify the subdomain and then `IPSetReferenceStatement` to check the client's IP against the relevant IP set.
+
+**How to Apply:**
+
+1.  **Create WAF IP Sets:** Ensure you have created the necessary WAF IP Sets (e.g., `ReferenceIPSet1` and `ReferenceIPSet2` from your CFT example) in AWS WAF, populated with your desired CIDRs for each domain.
+2.  **Deploy WAF WebACL:** Deploy or update your CloudFormation stack that defines the `EKSWAFWebACL` and its rules, ensuring it references the correct IP Set ARNs.
+3.  **Update Ingress:** Replace your existing multiple Ingress files with this consolidated `shared-alb-main-ingress.yaml` (after filling in your specific details like certificate ARN, service names, and WAF ARN).
+    ```sh
+    kubectl apply -f shared-alb-main-ingress.yaml
+    ```
+4.  **Verification:** Follow the verification and testing steps in your guide, paying close attention to WAF association and rule testing.
+
+This approach centralizes both your ALB configuration and your advanced security rules, making management more efficient.
+
+Here's a visual representation of how this consolidated setup works: 
 
 ## 5. S3 Bucket Policy for Access Logs
 
@@ -158,6 +184,17 @@ This is a reference example.
 
 ```yaml
 Resources:
+  gropAIPSet1ARN:
+    Type: AWS::WAFv2::IPSet
+    Properties:
+      Name: "alb-office-nw-uat"
+      Description: "Allowed office network CIDRs for UAT ALBs"
+      Scope: REGIONAL
+      IPAddressVersion: IPV4
+      Addresses:
+        - "102.124.57.15/32"
+        - "102.124.55.15/32"
+        - "102.124.58.15/32"
   EKSWAFWebACL:
     Type: AWS::WAFv2::WebACL
     Properties:
@@ -171,40 +208,10 @@ Resources:
         CloudWatchMetricsEnabled: true
         MetricName: !Sub 'EKS-WAF-ALB-${Environment}'
       Rules:
-        # Managed Rule Groups - high priority numbers so custom rules run first
-        - Name: AWS-AWSManagedRulesAnonymousIpList
-          Priority: 100
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesAnonymousIpList
-          OverrideAction:
-            None: {} # Allow this managed rule group to block if it detects issues
-          VisibilityConfig:
-            SampledRequestsEnabled: true
-            CloudWatchMetricsEnabled: true
-            MetricName: AWS-AWSManagedRulesAnonymousIpList
-
-        - Name: AWS-AWSManagedRulesAmazonIpReputationList
-          Priority: 101
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesAmazonIpReputationList
-          OverrideAction:
-            None: {} # Allow this managed rule group to block if it detects issues
-          VisibilityConfig:
-            SampledRequestsEnabled: true
-            CloudWatchMetricsEnabled: true
-            MetricName: AWS-AWSManagedRulesAmazonIpReputationList
-
-        # Add other AWS Managed Rule Groups here as needed, e.g., Common Rule Set, Bot Control, etc.
-        # Ensure they have appropriate priorities.
-
-        # Custom Rule 10: Domain-Based Access for a Specific Service
+        # Custom Rule 1: Domain-Based Access for a Specific Service
         # This rule allows traffic to 'service1.example.com' if the source IP is in ReferenceIPSet1
         - Name: Service1DomainAccessRule
-          Priority: 10 # Custom rules typically have lower (earlier) priorities
+          Priority: 1 # Custom rules typically have lower (earlier) priorities
           Statement:
             AndStatement:
               Statements:
@@ -218,7 +225,7 @@ Resources:
                         Type: "LOWERCASE"
                     PositionalConstraint: "EXACTLY"
                 - IPSetReferenceStatement: # Check if IP is in the allowed set
-                    Arn: !Ref ReferenceIPSet1ARN # Using parameter or give directly IP Set ARN
+                    Arn: !Ref gropAIPSet1ARN # Using parameter or give directly IP Set ARN
                     IPSetForwardedIPConfig: # Important for ALBs to check the true client IP
                       HeaderName: "X-Forwarded-For"
                       FallbackBehavior: "MATCH"
