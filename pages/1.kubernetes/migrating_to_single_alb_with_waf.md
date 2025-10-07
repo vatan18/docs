@@ -39,7 +39,7 @@ First, let's gather information about your current Ingress configurations and an
 This command will output all Ingress resources in YAML format, which you can save for reference and modification.
 
 ```sh
-kubectl get ingress --all-namespaces -o yaml > uat-all-ingress.yaml
+kubectl get ingress --all-namespaces -o yaml > all-ingress.yaml
 ```
 
 ### Fetch All Inbound CIDRs Used by ALBs
@@ -50,9 +50,9 @@ This command specifically extracts Ingress resources that have the `alb.ingress.
 kubectl get ingress --all-namespaces -o json | \
 jq -r '.items[] | select(.metadata.annotations."alb.ingress.kubernetes.io/inbound-cidrs") |
         "\(.metadata.namespace)/\(.metadata.name): \(.metadata.annotations."alb.ingress.kubernetes.io/inbound-cidrs")"' \
-> uat-inbound-cidrs.txt
+> inbound-cidrs.txt
 ```
-Review `uat-inbound-cidrs.txt` to understand which services currently have IP restrictions. You'll use this information to create WAF IP sets and rules.
+Review `inbound-cidrs.txt` to understand which services currently have IP restrictions. You'll use this information to create WAF IP sets and rules.
 
 ## 4. Planning Your Migration
 
@@ -66,11 +66,11 @@ Before making changes, it's crucial to plan:
 
 *   **Downtime Strategy:** Plan for potential downtime during the migration. A phased approach or blue/green deployment is recommended for critical services.
 
-*   **WAF Rules:** Define the specific WAF rules you want to apply based on your `uat-inbound-cidrs.txt` and other security requirements.
+*   **WAF Rules:** Define the specific WAF rules you want to apply based on your `inbound-cidrs.txt` and other security requirements.
 
 ## 5. Modifying Ingress Resources for a Shared ALB
 
-Now, let's modify your `uat-all-ingress.yaml` (or individual Ingress files) to group them under a single ALB.
+Now, let's modify your `all-ingress.yaml` (or individual Ingress files) to group them under a single ALB.
 
 For each Ingress resource you want to include in the shared ALB, you'll need to add or modify the following annotations:
 
