@@ -15,8 +15,7 @@ This guide outlines the process of consolidating multiple AWS Application Load B
 
 ## 1. Introduction
 
-Managing numerous ALBs can lead to increased operational overhead and costs. By utilizing the `alb.ingress.kubernetes.io/group.name` annotation, you can consolidate multiple Ingress resources under a single AWS ALB. This approach simplifies management, potentially reduces costs, and provides a centralized point for security configurations like AWS WAF.
-
+Managing numerous ALBs can lead to increased operational overhead and costs.
 This guide will walk you through fetching existing Ingress configurations, modifying them to use a shared ALB, configuring access logs, and attaching WAF to protect your applications, specifically handling domain-based IP restrictions.
 
 ## 2. Prerequisites
@@ -64,26 +63,9 @@ Before making changes, it's crucial to plan:
 
 *   **DNS Updates:** Be prepared to update DNS records to point to the new shared ALB's CNAME once it's created and validated.
 
-*   **Downtime Strategy:** Plan for potential downtime during the migration. A phased approach or blue/green deployment is recommended for critical services.
-
 *   **WAF Rules:** Define the specific WAF rules you want to apply based on your `inbound-cidrs.txt` and other security requirements.
 
 ## 5. Modifying Ingress Resources for a Shared ALB
-
-Now, let's modify your `all-ingress.yaml` (or individual Ingress files) to group them under a single ALB.
-
-For each Ingress resource you want to include in the shared ALB, you'll need to add or modify the following annotations:
-
-*   `alb.ingress.kubernetes.io/group.name: shared-application-alb`: This is the key annotation that tells the AWS Load Balancer Controller to group this Ingress with others using the same group name under a single ALB.
-
-*   `alb.ingress.kubernetes.io/group.order: <number>`: (Optional but Recommended) Specifies the order of evaluation for listener rules within the shared ALB. Lower numbers are evaluated first.
-
-*   `alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'`: Ensures the shared ALB listens on standard HTTP and HTTPS ports.
-
-*   `alb.ingress.kubernetes.io/ssl-redirect: '443'`: (Optional) Enforces HTTPS redirection for HTTP traffic.
-
-*   `alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:AWS_REGION:YOUR_ACCOUNT_ID:certificate/CERTIFICATE_ID`: Replace with your ACM certificate ARN for HTTPS.
-
 
 ### Example Ingress Modification:
 
@@ -95,12 +77,12 @@ Here's an example of how you would modify a single Ingress file to use a shared 
 
 This example assumes you have two subdomains: `dashboard.example.com` and `customer-portal.example.com`. Instead of using `alb.ingress.kubernetes.io/inbound-cidrs` directly on the Ingress, we'll configure WAF to handle these restrictions by referencing WAF IP Sets you've created (e.g., via CloudFormation, as in your `EKSWAFWebACL` example).
 
-Existing ingress
+Existing ingress file
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: portal-service-uat
+  name: portal-service
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
@@ -126,7 +108,7 @@ New ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: new-portal-service-uat
+  name: new-portal-service
   namespace: default
   annotations:
     kubernetes.io/ingress.class: alb
@@ -141,7 +123,7 @@ metadata:
     alb.ingress.kubernetes.io/subnets: subnet-0a9dcf032e3c5e1b2,subnet-0992fb71762d02729 # Example Subnets
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3000
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
-    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:AWS_REGION:YOUR_ACCOUNT_ID:regional/webacl/EKS-WAF-ALB-UAT/WEB_ACL_UNIQUE_ID # Example ARN
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:AWS_REGION:YOUR_ACCOUNT_ID:regional/webacl/EKS-WAF-ALB/WEB_ACL_UNIQUE_ID # Example ARN
 spec:
   rules:
   - host: customer-portal.example.com
@@ -162,24 +144,6 @@ spec:
 2.  **Shared ALB Group:** `alb.ingress.kubernetes.io/group.name: shared-application-alb` and `alb.ingress.kubernetes.io/group.order: '1'` are set to ensure this Ingress is part of your shared ALB configuration.
 3.  **WAF Association:** The key annotation `alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:AWS_REGION:YOUR_ACCOUNT_ID:regional/webacl/EKS-WAF-ALB-Environment/WEB_ACL_UNIQUE_ID` is added. This tells the AWS Load Balancer Controller to associate your defined WAF WebACL with the shared ALB it creates or manages.
 4.  **Removal of `inbound-cidrs`:** The `alb.ingress.kubernetes.io/inbound-cidrs` annotation is explicitly *removed*. Its functionality is now delegated entirely to AWS WAF.
-5.  **WAF Rule Implementation (External to Ingress):**
-    *   You would maintain your `EKSWAFWebACL` (from your CloudFormation example) to define the actual CIDR-based access rules.
-    *   **ReferenceIPSet1ARN** would contain the CIDRs allowed for `dashboard.example.com`.
-    *   **ReferenceIPSet2ARN** would contain the CIDRs allowed for `customer-portal.example.com`.
-    *   The WAF rules (`DashboardAccessRule`, `CustomerPortalAccessRule`) in your CloudFormation template use `ByteMatchStatement` on the `Host` header to identify the subdomain and then `IPSetReferenceStatement` to check the client's IP against the relevant IP set.
-
-**How to Apply:**
-
-1.  **Create WAF IP Sets:** Ensure you have created the necessary WAF IP Sets (e.g., `OfficeNetworkIPSet` and `PartnerNetworkIPSet` from your CFT example) in AWS WAF, populated with your desired CIDRs for each domain.
-2.  **Deploy WAF WebACL:** Deploy or update your CloudFormation stack that defines the `EKSWAFWebACL` and its rules, ensuring it references the correct IP Set ARNs.
-3.  **Update Ingress:** Replace your existing multiple Ingress files with this consolidated `shared-alb-main-ingress.yaml` (after filling in your specific details like certificate ARN, service names, and WAF ARN).
-    ```sh
-    kubectl apply -f shared-alb-main-ingress.yaml
-    ```
-4.  **Verification:** Follow the verification and testing steps in your guide, paying close attention to WAF association and rule testing.
-
-This approach centralizes both your ALB configuration and your advanced security rules, making management more efficient.
-
 
 ## 5. S3 Bucket Policy for Access Logs
 
@@ -431,10 +395,11 @@ Outputs:
       Name: !Sub '${AWS::StackName}-WebACLId'
 
 ```
+json rule builder for waf
 ```json
 {
   "Name": "AllowPubliclyAccessibleServices",
-  "Priority": 9, # Adjusted priority to be after managed rules
+  "Priority": 2, # Adjusted priority to be after managed rules
   "Statement": {
     "OrStatement": {
       "Statements": [
@@ -726,7 +691,7 @@ After applying the changes, thoroughly verify your setup:
     Confirm that a single ALB is created/updated for the `shared-application-alb` group.
 
 ```sh
-kubectl get ingress -n <your-namespace> new-portal-service-uat -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+kubectl get ingress -n <your-namespace> new-portal-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 ```
 
 You should see the DNS name of the shared ALB.
@@ -735,7 +700,7 @@ You should see the DNS name of the shared ALB.
     Verify that log files are being delivered to your specified S3 bucket. This may take a few minutes for the first logs to appear.
 
 *   **WAF Association:**
-    In the AWS WAF console, navigate to your `EKS-WAF-ALB-UAT` web ACL. Under "Associated AWS resources," confirm that your shared ALB is listed.
+    In the AWS WAF console, navigate to your `EKS-WAF-ALB` web ACL. Under "Associated AWS resources," confirm that your shared ALB is listed.
 
 *   **Application Connectivity:**
     Test all services previously served by individual ALBs to ensure they are now accessible through the shared ALB's DNS name (and your updated CNAME records).
