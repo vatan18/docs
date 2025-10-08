@@ -180,4 +180,583 @@ spec:
 
 This approach centralizes both your ALB configuration and your advanced security rules, making management more efficient.
 
-Here's a visual representation of how this consolidated setup works: 
+
+## 5. S3 Bucket Policy for Access Logs
+
+The ALB needs permission to write logs to your S3 bucket. You must attach a bucket policy that grants the AWS managed ALB account ID write access.
+
+Replace `YOUR_AWS_REGION` and `YOUR_ACCOUNT_ID` with your actual AWS region and the account ID where the S3 bucket resides. The `ELB_ACCOUNT_ID` is a specific AWS service account ID that varies by region. You can find the correct `ELB_ACCOUNT_ID` for your region in the [AWS documentation for ALB access logs](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html).
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::ELB_ACCOUNT_ID:root"
+      },
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::your-access-log-bucket-name/AWSLogs/YOUR_ACCOUNT_ID/*",
+      "Condition": {
+        "StringEquals": {
+          "s3:x-amz-acl": "bucket-owner-full-control"
+        }
+      }
+    }
+  ]
+}
+```
+
+## 6. WAF WebACL CloudFormation Reference
+
+For those managing infrastructure with CloudFormation, here's an example of how a WAF WebACL could be defined. This template showcases managed rule groups, IP set references, and domain-based routing logic.
+
+This is a reference example.
+
+```yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'WAF WebACL for EKS ALBs with managed rule groups and IP set references'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: UAT
+    Description: Deployment environment (e.g. UAT, PROD)
+  OfficeNetworkIPSetARN:
+    Type: String
+    Default: 'arn:aws:wafv2:AWS_REGION:YOUR_ACCOUNT_ID:regional/ipset/OfficeNetworkIPSet/UNIQUE_ID_1' # Example ARN
+    Description: ARN of the allowed office network IP Set
+  PartnerNetworkIPSetARN:
+    Type: String
+    Default: 'arn:aws:wafv2:AWS_REGION:YOUR_ACCOUNT_ID:regional/ipset/PartnerNetworkIPSet/UNIQUE_ID_2' # Example ARN
+    Description: ARN of the partner network IP Set
+
+Resources:
+  OfficeNetworkIPSet:
+    Type: AWS::WAFv2::IPSet
+    Properties:
+      Name: "office-network-ip-set"
+      Description: "Allowed office network CIDRs for UAT ALBs"
+      Scope: REGIONAL
+      IPAddressVersion: IPV4
+      Addresses:
+        - "203.0.113.0/24" # Example CIDR block for office
+        - "198.51.100.0/24" # Another example CIDR
+        # Add more CIDR blocks as needed
+        
+  EKSWAFWebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: !Sub 'EKS-WAF-ALB-${EnvironmentName}'
+      Scope: REGIONAL
+      Description: WAF for EKS ALBs
+      DefaultAction:
+        Block: {}  # Default to block all requests unless explicitly allowed
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub 'EKS-WAF-ALB-${EnvironmentName}'
+      Rules:
+        # Priority 0 is for explicit ALLOW rules at the top
+        - Name: DomainSpecificAccessRules
+          Priority: 0
+          Statement:
+            OrStatement:
+              Statements:
+                # Rule for 'dashboard.example.com' allowing access from OfficeNetworkIPSet
+                - AndStatement:
+                    Statements:
+                      - ByteMatchStatement:
+                          SearchString: "dashboard.example.com"
+                          FieldToMatch:
+                            SingleHeader:
+                              Name: "host"
+                          TextTransformations:
+                            - Priority: 0
+                              Type: "LOWERCASE"
+                          PositionalConstraint: "EXACTLY"
+                      - IPSetReferenceStatement:
+                          Arn: !GetAtt OfficeNetworkIPSet.Arn # Reference the created IPSet
+                          IPSetForwardedIPConfig:
+                            HeaderName: "X-Forwarded-For"
+                            FallbackBehavior: "MATCH"
+                            Position: "FIRST"
+                # Rule for 'customer-portal.example.com' allowing access from PartnerNetworkIPSet
+                - AndStatement:
+                    Statements:
+                      - ByteMatchStatement:
+                          SearchString: "customer-portal.example.com"
+                          FieldToMatch:
+                            SingleHeader:
+                              Name: "host"
+                          TextTransformations:
+                            - Priority: 0
+                              Type: "LOWERCASE"
+                          PositionalConstraint: "EXACTLY"
+                      - IPSetReferenceStatement:
+                          Arn: !Ref PartnerNetworkIPSetARN # Reference an externally defined IPSet
+                          IPSetForwardedIPConfig:
+                            HeaderName: "X-Forwarded-For"
+                            FallbackBehavior: "MATCH"
+                            Position: "FIRST"
+                # Add more domain-specific AND IPSet combinations here.
+                # Example for 'api.example.com' accessible from anywhere (or another specific IP set)
+                - ByteMatchStatement:
+                    SearchString: "api.example.com"
+                    FieldToMatch:
+                      SingleHeader:
+                        Name: "host"
+                    TextTransformations:
+                      - Priority: 0
+                        Type: "LOWERCASE"
+                    PositionalConstraint: "EXACTLY"
+          Action:
+            Allow: {} # Allow if any of the OrStatement conditions are met
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: DomainSpecificAccessRule
+
+        # Managed Rule Groups (starting from Priority 1 and onwards)
+        - Name: AWS-AWSManagedRulesAnonymousIpList
+          Priority: 1
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAnonymousIpList
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWS-AWSManagedRulesAnonymousIpList
+            
+        - Name: AWS-AWSManagedRulesAmazonIpReputationList
+          Priority: 2
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAmazonIpReputationList
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWS-AWSManagedRulesAmazonIpReputationList
+            
+        - Name: AWS-AWSManagedRulesKnownBadInputsRuleSet
+          Priority: 3
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWS-AWSManagedRulesKnownBadInputsRuleSet
+            
+        - Name: AWS-AWSManagedRulesLinuxRuleSet
+          Priority: 4
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesLinuxRuleSet
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWS-AWSManagedRulesLinuxRuleSet
+            
+        - Name: AWS-AWSManagedRulesPHPRuleSet
+          Priority: 5
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesPHPRuleSet
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWS-AWSManagedRulesPHPRuleSet
+            
+        - Name: AWS-AWSManagedRulesUnixRuleSet
+          Priority: 6
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesUnixRuleSet
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWS-AWSManagedRulesUnixRuleSet
+            
+        - Name: AWS-AWSManagedRulesSQLiRuleSet
+          Priority: 7
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWS-AWSManagedRulesSQLiRuleSet
+            
+        - Name: AWS-AWSManagedRulesWindowsRuleSet
+          Priority: 8
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesWindowsRuleSet
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWS-AWSManagedRulesWindowsRuleSet
+            
+Outputs:
+  WebACLId:
+    Description: The ID of the WAF WebACL
+    Value: !GetAtt EKSWAFWebACL.Id
+    Export:
+      Name: !Sub '${AWS::StackName}-WebACLId'
+
+```
+```json
+{
+  "Name": "AllowPubliclyAccessibleServices",
+  "Priority": 9, # Adjusted priority to be after managed rules
+  "Statement": {
+    "OrStatement": {
+      "Statements": [
+        {
+          "ByteMatchStatement": {
+            "SearchString": "public-ckyc-service.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "public-landing-page.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "guest-view-documents.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "open-api-gateway.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "vendor-info-management.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "external-vendor-portal.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "cibil-check.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "config-portal-api.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "data-analytics-api.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "new-app-release-test.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "utility-services.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "hr-verification.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "cron-jobs-endpoint.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "payment-client-interface.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "secure-forms-web.example.com",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "host"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        }
+      ]
+    }
+  },
+  "Action": {
+    "Allow": {}
+  },
+  "VisibilityConfig": {
+    "SampledRequestsEnabled": true,
+    "CloudWatchMetricsEnabled": true,
+    "MetricName": "AllowPubliclyAccessibleServices"
+  }
+}
+```
+## Troubleshoot WAF 403 Errors
+
+The `curl -vk https://customer-portal.example.com/` command is used to check whether your AWS WAF, ALB, or Ingress routing is working properly.
+
+Here’s what each flag does:
+
+`-v` → verbose output (shows detailed connection steps)
+
+`-k` → allows insecure SSL connections (useful if your certificate is self-signed or not trusted, though ideally you'd use a valid cert)
+
+`https://customer-portal.example.com/` → the URL of your domain behind WAF/ALB
+
+## 7. Verification and Testing
+
+After applying the changes, thoroughly verify your setup:
+
+*   **Check ALB Status:**
+    Confirm that a single ALB is created/updated for the `shared-application-alb` group.
+
+```sh
+kubectl get ingress -n <your-namespace> new-portal-service-uat -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+```
+
+You should see the DNS name of the shared ALB.
+
+*   **Access Logs:**
+    Verify that log files are being delivered to your specified S3 bucket. This may take a few minutes for the first logs to appear.
+
+*   **WAF Association:**
+    In the AWS WAF console, navigate to your `EKS-WAF-ALB-UAT` web ACL. Under "Associated AWS resources," confirm that your shared ALB is listed.
+
+*   **Application Connectivity:**
+    Test all services previously served by individual ALBs to ensure they are now accessible through the shared ALB's DNS name (and your updated CNAME records).
+
+    *   Test HTTP and HTTPS.
+    *   Test all paths and hosts.
+
+*   **WAF Rule Testing:**
+    If you've added specific WAF rules (e.g., blocking certain IPs, SQL injection, XSS), try to trigger them to ensure they are functioning as expected.
+
+    *   Specifically test your IP-based access rules. Try accessing `dashboard.example.com` from an allowed IP (e.g., from your `OfficeNetworkIPSet`) and a blocked IP (one not in any allowed set).
+    *   Test other publicly accessible services like `api.example.com`.
+
+    *   Caution: Only test rules you've specifically configured to block. Be mindful of potential impact.
+
+## 8. Troubleshooting
+
+*   **Ingress Events:** Check `kubectl describe ingress <ingress-name>` for any events or errors reported by the AWS Load Balancer Controller.
+
+*   **Controller Logs:** Review the logs of the `aws-load-balancer-controller` pod for detailed errors.
+
+```sh
+kubectl logs -n kube-system deploy/aws-load-balancer-controller
+```
