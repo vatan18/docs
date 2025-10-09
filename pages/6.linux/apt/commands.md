@@ -150,3 +150,74 @@ wget -O package_name.deb https://example.com/path/to/package_name.deb && sudo ap
 This will download the file and immediately install it.
 
 ---
+Ah, perfect! If you have Postman as a `.tar.gz` file, you **don’t install it via `apt` or `dpkg`**—you extract it and run it directly. Here’s the step-by-step way:
+
+---
+
+### **Step 1: Move the `.tar.gz` file to a proper location**
+
+A common place is `/opt`:
+
+```bash
+sudo mv Postman-x.x.x-linux-x64.tar.gz /opt/
+cd /opt
+```
+
+> Replace `Postman-x.x.x-linux-x64.tar.gz` with your actual file name.
+
+---
+
+### **Step 2: Extract the archive**
+
+```bash
+sudo tar -xzf Postman-x.x.x-linux-x64.tar.gz
+```
+
+* This will create a `Postman` folder in `/opt`.
+
+---
+
+### **Step 3: Create a symbolic link for easy access**
+
+```bash
+sudo ln -s /opt/Postman/Postman /usr/bin/postman
+```
+
+* This allows you to launch Postman just by typing `postman` in the terminal.
+
+---
+
+### **Step 4: Run Postman**
+
+```bash
+postman
+```
+
+* Postman will start.
+
+---
+
+### **Step 5: Optional – Create a desktop shortcut**
+
+Create a `.desktop` file so Postman appears in your application menu:
+
+```bash
+sudo nano /usr/share/applications/postman.desktop
+```
+
+Add the following content:
+
+```ini
+[Desktop Entry]
+Name=Postman
+Comment=Postman API Client
+Exec=/opt/Postman/Postman
+Icon=/opt/Postman/app/resources/app/assets/icon.png
+Terminal=false
+Type=Application
+Categories=Development;
+```
+
+Save (`Ctrl+O`) and exit (`Ctrl+X`).
+Now Postman will appear in your apps menu.
+
