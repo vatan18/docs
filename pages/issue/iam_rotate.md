@@ -532,3 +532,321 @@ aws cloudformation deploy \
 * **IAM scoping**: we restricted Secrets & SNS actions to their ARNs; IAM actions still require Resource: `*` for key lifecycle operations — document and restrict who holds the IAM stack. Keep the role tight and audit.
 
 ---
+Perfect 👍 — let’s take your current **inline Lambda (Python)** and convert it into a **SAM project structure** where:
+
+✅ The code lives in a folder (not inline).
+✅ `CodeUri` points to that folder.
+✅ You can build → package → deploy using `sam build`, `sam package`, and `sam deploy`.
+✅ Works well with your modular CloudFormation stacks from before.
+
+---
+
+## 🧩 Project structure
+
+Use this folder layout (create files locally):
+
+```
+access-key-rotation/
+│
+├── sam-lambda-template.yaml         # SAM template
+└── src/
+    ├── lambda_function.py           # Python Lambda code
+    └── requirements.txt             # Python dependencies (empty or minimal)
+```
+
+You can keep your CloudFormation stacks (`sns-stack.yaml`, `iam-stack.yaml`, etc.) in a sibling folder like `infra/` if you want separation.
+
+---
+
+## 🐍 lambda_function.py
+
+Copy the previous Python code (from the InlineCode block) into `src/lambda_function.py`:
+
+```python
+import os
+import json
+import time
+import logging
+from datetime import datetime, timezone
+
+import boto3
+from botocore.exceptions import ClientError
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+secrets_client = boto3.client('secretsmanager')
+iam_client = boto3.client('iam')
+sns_client = boto3.client('sns')
+sts_client = boto3.client('sts')
+
+SECRET_ARN = os.environ['SECRET_ARN']
+SNS_TOPIC_ARN = os.environ['SNS_TOPIC_ARN']
+ROTATE_AFTER_DAYS = int(os.environ.get('ROTATE_AFTER_DAYS', '90'))
+VALIDATION_SLEEP = int(os.environ.get('VALIDATION_SLEEP', '3'))
+
+def publish_sns(subject, message):
+    try:
+        sns_client.publish(TopicArn=SNS_TOPIC_ARN, Subject=subject, Message=message)
+        logger.info("SNS published: %s", subject)
+    except Exception:
+        logger.exception("Failed to publish SNS")
+
+def get_secret():
+    resp = secrets_client.get_secret_value(SecretId=SECRET_ARN)
+    return json.loads(resp['SecretString'])
+
+def put_secret(secret):
+    secrets_client.put_secret_value(SecretId=SECRET_ARN, SecretString=json.dumps(secret))
+
+def validate_credentials(access_key_id, secret_access_key):
+    try:
+        session = boto3.Session(aws_access_key_id=access_key_id, aws_secret_access_key=secret_access_key)
+        sts = session.client('sts')
+        sts.get_caller_identity()
+        return True
+    except Exception:
+        logger.exception("Validation failed for new key")
+        return False
+
+def lambda_handler(event, context):
+    logger.info("Starting rotation at %s", datetime.now(timezone.utc).isoformat())
+    secret = get_secret()
+    username = secret.get('username')
+    if not username:
+        raise Exception("Secret must include 'username'")
+
+    last_rotated = secret.get('lastRotated')
+    if last_rotated:
+        last_date = datetime.fromisoformat(last_rotated.replace("Z", "+00:00"))
+        age = (datetime.now(timezone.utc) - last_date).days
+        if age < ROTATE_AFTER_DAYS:
+            logger.info("Rotation skipped — only %d days since last rotation", age)
+            return {"status": "skipped", "days_since": age}
+
+    # List existing keys
+    keys = iam_client.list_access_keys(UserName=username).get('AccessKeyMetadata', [])
+    old_key_ids = [k['AccessKeyId'] for k in keys]
+
+    try:
+        created = iam_client.create_access_key(UserName=username)['AccessKey']
+        new_ak = created['AccessKeyId']
+        new_sk = created['SecretAccessKey']
+        logger.info("Created new key %s", new_ak)
+    except Exception:
+        logger.exception("Failed to create new key")
+        publish_sns("❌ Access Key Rotation Failure", f"Failed to create new key for {username}")
+        raise
+
+    time.sleep(VALIDATION_SLEEP)
+
+    if not validate_credentials(new_ak, new_sk):
+        try:
+            iam_client.delete_access_key(UserName=username, AccessKeyId=new_ak)
+        except Exception:
+            logger.exception("Failed to delete invalid new key")
+        publish_sns("❌ Access Key Rotation Failed", f"Validation failed for {username}")
+        raise Exception("Validation failed")
+
+    secret.update({
+        "accessKeyId": new_ak,
+        "secretAccessKey": new_sk,
+        "lastRotated": datetime.now(timezone.utc).isoformat(),
+        "version": secret.get('version', 0) + 1
+    })
+
+    try:
+        put_secret(secret)
+    except Exception:
+        logger.exception("Failed to update secret, deleting new key to avoid orphan")
+        try:
+            iam_client.delete_access_key(UserName=username, AccessKeyId=new_ak)
+        except Exception:
+            logger.exception("Failed to delete new key after secret update failed")
+        publish_sns("❌ Access Key Rotation Failed", f"Secret update failed for {username}")
+        raise
+
+    for key in old_key_ids:
+        if key == new_ak:
+            continue
+        try:
+            iam_client.delete_access_key(UserName=username, AccessKeyId=key)
+            logger.info("Deleted old key: %s", key)
+        except Exception:
+            logger.exception("Failed to delete old key: %s", key)
+
+    publish_sns("✅ Access Key Rotation Success", f"IAM Access key for {username} rotated successfully. New AccessKeyId: {new_ak}")
+    return {"status": "success", "newAccessKeyId": new_ak}
+```
+
+---
+
+## 📦 requirements.txt
+
+If you’re only using `boto3` (already available in Lambda runtime), you can leave this empty.
+If you add dependencies later (like requests or jsonschema), list them here.
+
+```text
+# requirements.txt
+# boto3 is available by default in Lambda; nothing needed yet.
+```
+
+---
+
+## 🧱 sam-lambda-template.yaml (CodeUri version)
+
+Replace the `InlineCode` block with:
+
+```yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM template that deploys Access Key Rotation Lambda (CodeUri version).
+
+Parameters:
+  Prefix:
+    Type: String
+    Default: prod
+  LambdaRoleArnExportName:
+    Type: String
+  SecretArnExportName:
+    Type: String
+  SnsTopicArnExportName:
+    Type: String
+  RotateAfterDays:
+    Type: Number
+    Default: 90
+  ValidationSleep:
+    Type: Number
+    Default: 3
+
+Resources:
+  AccessKeyRotationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Prefix}-AccessKeyRotate"
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.10
+      CodeUri: src/
+      Role: !ImportValue { 'Fn::Sub': "${LambdaRoleArnExportName}" }
+      Timeout: 300
+      MemorySize: 256
+      Environment:
+        Variables:
+          SECRET_ARN: !ImportValue { 'Fn::Sub': "${SecretArnExportName}" }
+          SNS_TOPIC_ARN: !ImportValue { 'Fn::Sub': "${SnsTopicArnExportName}" }
+          ROTATE_AFTER_DAYS: !Ref RotateAfterDays
+          VALIDATION_SLEEP: !Ref ValidationSleep
+
+Outputs:
+  LambdaArn:
+    Value: !GetAtt AccessKeyRotationFunction.Arn
+    Export:
+      Name: !Sub "${Prefix}-RotationLambdaArn"
+```
+
+---
+
+## 🚀 Build → Package → Deploy flow
+
+Run these commands from inside your `access-key-rotation/` folder:
+
+### 1️⃣ Build locally
+
+```bash
+sam build
+```
+
+This creates `.aws-sam/build/` with dependencies packaged.
+
+### 2️⃣ Package (optional if using `sam deploy --guided`)
+
+You can explicitly package if you want the zip in S3 first:
+
+```bash
+sam package \
+  --s3-bucket my-sam-artifacts-bucket \
+  --output-template-file packaged.yaml
+```
+
+### 3️⃣ Deploy (guided)
+
+If you haven’t deployed before:
+
+```bash
+sam deploy --guided
+```
+
+You’ll be prompted for:
+
+* Stack Name: `prod-lambda`
+* AWS Region
+* Parameters:
+
+  * `Prefix`: prod
+  * `LambdaRoleArnExportName`: `prod-LambdaRoleArn`
+  * `SecretArnExportName`: `prod-SecretArn`
+  * `SnsTopicArnExportName`: `prod-SNSTopicArn`
+* Save these values to `samconfig.toml` so future deploys are one command.
+
+Then later, you can redeploy easily:
+
+```bash
+sam deploy
+```
+
+---
+
+## 🧾 Validation
+
+After successful deploy:
+
+```bash
+aws lambda invoke --function-name prod-AccessKeyRotate response.json
+cat response.json
+```
+
+You should see something like:
+
+```json
+{"status":"skipped","days_since":25}
+```
+
+(if key was rotated recently)
+
+---
+
+## 🔁 Connect EventBridge
+
+Once deployed, run:
+
+```bash
+aws cloudformation deploy \
+  --template-file ../infra/eventbridge-stack.yaml \
+  --stack-name prod-eventbridge \
+  --parameter-overrides \
+    Prefix=prod \
+    RotationLambdaArnExportName=prod-RotationLambdaArn \
+    ScheduleExpression="cron(0 0 1 1,4,7,10 ? *)"
+```
+
+This links the EventBridge rule to your Lambda so it runs automatically per schedule.
+
+---
+
+## ✅ Summary
+
+You now have:
+
+* Code stored in `src/` (version-controlled).
+* Modular stacks for IAM, SNS, Secrets, Lambda, and Scheduler.
+* SAM-managed Lambda (easy local test & deploy).
+* Reusable infra stacks with imports between them.
+
+---
+
+Would you like me to also add:
+
+* ✅ an **SNS email subscription** stack (for notifications)?
+* ✅ a **CloudWatch Alarm** stack to alert on Lambda errors?
+
+Both can plug into your existing SNS topic and follow the same modular export/import pattern.
