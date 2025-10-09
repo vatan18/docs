@@ -150,7 +150,3 @@ wget -O package_name.deb https://example.com/path/to/package_name.deb && sudo ap
 This will download the file and immediately install it.
 
 ---
-
-If you want, I can give a **ready-to-use command** for a popular software like **Google Chrome or VS Code**, which you can just copy-paste.
-
-Do you want me to do that?
