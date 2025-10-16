@@ -675,6 +675,10 @@ json rule builder for waf
 
 The `curl -vk https://customer-portal.example.com/` command is used to check whether your AWS WAF, ALB, or Ingress routing is working properly.
 
+without dns mapping check
+curl -vk https://k8s-sharedalb-045.us-east-1.elb.amazonaws.com \
+     -H "Host: bikebazaarappsuat.bikebazaar.com"
+
 Here’s what each flag does:
 
 `-v` → verbose output (shows detailed connection steps)
@@ -682,6 +686,20 @@ Here’s what each flag does:
 `-k` → allows insecure SSL connections (useful if your certificate is self-signed or not trusted, though ideally you'd use a valid cert)
 
 `https://customer-portal.example.com/` → the URL of your domain behind WAF/ALB
+
+## example 404 error
+curl -v bikebazaarappsuat.bikebazaar.com
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+< HTTP/2 404 
+< server: awselb/2.0
+< date: Wed, 15 Oct 2025 08:19:04 GMT
+< content-type: text/plain; charset=utf-8
+< content-length: 0
+< 
+* Connection #0 to host k8s-sharedalb-bc078dd9.ap-south-1.elb.amazonaws.com
+here 404 was target-group unhealthy due to ingress misconfiguration 
+
+
 
 ## 7. Verification and Testing
 
