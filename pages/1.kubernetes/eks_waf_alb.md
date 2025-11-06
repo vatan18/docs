@@ -94,24 +94,33 @@ spec:
                 port:
                   number: 443
 ```
-
+Updated ingress
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: shared-ingress
+  name: new-portal-service
   namespace: default
   annotations:
     kubernetes.io/ingress.class: alb
+    # Shared ALB group — all services sharing this name will attach to one ALB
+    alb.ingress.kubernetes.io/group.name: shared-alb
+    alb.ingress.kubernetes.io/group.order: '1'
+
+    # ALB settings
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/group.name: shared-alb
     alb.ingress.kubernetes.io/backend-protocol: HTTP
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
     alb.ingress.kubernetes.io/ssl-redirect: '443'
+    
+    # Security & compliance
     alb.ingress.kubernetes.io/subnets: subnet-xxxx,subnet-yyyy
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:{{AWS_REGION}}:{{AWS_ACCOUNT_ID}}:certificate/{{CERTIFICATE_ID}}
     alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:{{AWS_REGION}}:{{AWS_ACCOUNT_ID}}:regional/webacl/EKS-WAF-ALB/{{WEBACL_ID}}
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+
+    # Access Logs and timeout
     alb.ingress.kubernetes.io/load-balancer-attributes: >-
       access_logs.s3.enabled=true,
       access_logs.s3.bucket={{ACCESS_LOG_BUCKET}},
@@ -130,6 +139,15 @@ spec:
                 port:
                   number: 443
 ```
+⚙️ Optional: Force Delete Old ALB (if stuck)
+
+If the old ALB doesn’t auto-delete after migration:
+```bash
+kubectl delete ingress old-portal-service
+```
+Then confirm from AWS console:
+ALB → old load balancer → status: deleted
+Target groups → remove old orphan ones if necessary.
 
 **Explanation of Changes:**
 
