@@ -75,7 +75,7 @@ Here's an example of how you would modify a single Ingress file to use a shared 
 
 ### Single Ingress File with Shared ALB and WAF Annotations
 
-This example assumes you have two subdomains: `dashboard.example.com` and `customer-portal.example.com`. Instead of using `alb.ingress.kubernetes.io/inbound-cidrs` directly on the Ingress, we'll configure WAF to handle these restrictions by referencing WAF IP Sets you've created (e.g., via CloudFormation, as in your `EKSWAFWebACL` example).
+Instead of using `alb.ingress.kubernetes.io/inbound-cidrs` directly on the Ingress, we'll configure WAF to handle these restrictions by referencing WAF IP Sets you've created (e.g., via CloudFormation, as in your `EKSWAFWebACL` example).
 
 Existing ingress file
 ```yaml
