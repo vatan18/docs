@@ -68,6 +68,33 @@ You’ll use the extracted CIDRs to create **AWS WAF IP sets**.
 
 ### Updated Ingress Example
 
+Existing ingress file
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portal-service
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/subnets: subnet-0a9dcf032e3c5e1b2,subnet-0992fb71762d02729 # Example Subnets
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:AWS_REGION:YOUR_ACCOUNT_ID:CERTIFICATE_ID # Example ARN
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+spec:
+  rules:
+    - host: "customer-portal.example.com"
+      http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: portal-service-backend
+                port:
+                  number: 443
+```
+
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -92,18 +119,25 @@ metadata:
       idle_timeout.timeout_seconds=300
 spec:
   rules:
-    - host: app.example.com
+    - host: "customer-portal.example.com"
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: app-service
+                name: portal-service-backend
                 port:
                   number: 443
 ```
 
+**Explanation of Changes:**
+
+1.  **Shared ALB Group:** `alb.ingress.kubernetes.io/group.name: shared-application-alb` and `alb.ingress.kubernetes.io/group.order: '1'` are set to ensure this Ingress is part of your shared ALB configuration.
+2.  **WAF Association:** The key annotation `alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:AWS_REGION:YOUR_ACCOUNT_ID:regional/webacl/EKS-WAF-ALB-Environment/WEB_ACL_UNIQUE_ID` is added. This tells the AWS Load Balancer Controller to associate your defined WAF WebACL with the shared ALB it creates or manages.
+3.  **Removal of `inbound-cidrs`:** The `alb.ingress.kubernetes.io/inbound-cidrs` annotation is explicitly *removed*. Its functionality is now delegated entirely to AWS WAF.
+4. **Loadbalancer**- S3 Bucket Policy for Access Logs
+## 5. S3 Bucket Policy for Access Logs
 ---
 
 ## 5. Set Up Access Logs
