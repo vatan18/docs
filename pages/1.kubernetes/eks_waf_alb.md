@@ -24,7 +24,7 @@ It also includes AWS WAF integration for centralized IP-based access control and
 
 Using a single shared ALB for multiple applications improves:
 
-* **Cost efficiency** (fewer ALBs)
+* **Cost efficiency** (single ALB)
 * **Centralized WAF protection**
 * **Simplified management**
 * **Unified access logging**
@@ -159,6 +159,7 @@ Target groups → remove old orphan ones if necessary.
 ---
 
 ## 5. Set Up Access Logs
+Replace `YOUR_AWS_REGION` and `YOUR_ACCOUNT_ID` with your actual AWS region and the account ID where the S3 bucket resides. The `ELB_ACCOUNT_ID` is a specific AWS service account ID that varies by region. You can find the correct `ELB_ACCOUNT_ID` for your region in the [AWS documentation for ALB access logs](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html).
 
 ### Example S3 Bucket Policy
 
