@@ -25,7 +25,7 @@ Below is a **complete structured table** of all major **HTTP status codes (1xx�
 | **429**           | Too Many Requests       | WAF rate limit, ALB throttling, API Gateway burst limit          | DevOps             | Tune WAF rate limits or backend capacity                             |
 | **502**           | Bad Gateway             | ALB cannot reach pod, Service port mismatch                      | DevOps             | Check Service `targetPort`, pod logs, health checks                  |
 | **503**           | Service Unavailable     | Pod crashed, scaled to 0, or failing health check                | DevOps             | Check pod readiness/liveness, replicas, ALB health                   |
-| **504**           | Gateway Timeout         | App too slow or network issue                                    | DevOps             | Increase ALB timeout or app performance                              |
+| **504**           | Gateway Timeout         | App too slow or network issue                                    | DevOps             | Increase ALB timeout or app performance (from alb not able to hit the backend service. hit /helathz and check nginx reverse proxy issue. )                            |
 | **5xx (502–504)** | Infra error             | Any upstream issue between ALB ↔ Ingress ↔ Service               | DevOps             | Network route, container health, scaling issues                      |
 
 ---
