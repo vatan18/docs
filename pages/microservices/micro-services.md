@@ -40,7 +40,7 @@ Parameters:
     AllowedValues: [staging, prod]
   Product:
     Type: String
-    Default: cognosos
+    Default: test
   Service:
     Type: String
     Default: app
